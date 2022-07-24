@@ -1,0 +1,40 @@
+﻿<Properties StartupConfiguration="{3739787C-B531-4C8B-B6C9-165DEBAF6DE4}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Shared/DayCardModal.razor">
+    <Files>
+      <File FileName="Shared/DayCard.razor" Line="94" Column="59" />
+      <File FileName="Shared/DayCardModal.razor" Line="1" Column="110" />
+      <File FileName="Data/DishService.cs" Line="54" Column="10" />
+      <File FileName="Program.cs" Line="29" Column="1" />
+      <File FileName="Pages/Index.razor" Line="10" Column="23" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="WhatToEatApp" expanded="True">
+            <Node name="WhatToEatApp" expanded="True">
+              <Node name="Data" expanded="True" />
+              <Node name="Pages" expanded="True" />
+              <Node name="Shared" expanded="True">
+                <Node name="DayCardModal.razor" selected="True" />
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+      <Pad Id="MonoDevelop.Debugger.WatchPad">
+        <State />
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore>
+      <Breakpoint file="/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/DayCardModal.razor" relfile="Shared/DayCardModal.razor" line="70" column="1" />
+      <Breakpoint file="/Users/peterstjern/Documents/blazor/WhatToEatApp/Data/DishService.cs" relfile="Data/DishService.cs" line="14" column="1" />
+      <Breakpoint file="/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/DayCard.razor" relfile="Shared/DayCard.razor" line="93" column="1" />
+    </BreakpointStore>
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.ItemProperties.WhatToEatApp PreferredExecutionTarget="/Applications/Microsoft Edge.app" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MultiItemStartupConfigurations />
+</Properties>

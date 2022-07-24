@@ -1,0 +1,14 @@
+﻿@page "/"
+<div class="container justify-content-center">
+    <h1 class="text-primary text-muted text-center">What to eat</h1>
+    <div class="container-fluid ">
+        <div class="row">
+            @foreach (var day in Enum.GetValues<Days>())
+            {
+                <div class="col-sm-12 col-lg-4 my-3">
+                    <DayCard Day=day />
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,109 @@
+@inject IDishService DishService;
+
+<div class="card" style="width: 100%;">
+    <div class="row g-0 justify-content-center">
+        @if (TodaysDish != null)
+        {
+            @if (!string.IsNullOrEmpty(TodaysDish?.ImgUrl))
+            {
+                <img src="@TodaysDish?.ImgUrl" class="card-img-top" alt="...">
+            }
+        }
+        <div class="card-body">
+            <div class="row">
+                @* <div class="col"> *@
+                <div class="col-sm-10">
+                    <h5 class="card-title mb-4">@Day.ToString() (@TodaysDish?.When.Date.ToShortDateString())</h5>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-sm-8 d-flex align-items-center">
+                        <h6 class="card-subtitle text-muted">@(TodaysDish?.Title ?? "No dish!")</h6>
+                    </div>
+                    @if (!string.IsNullOrEmpty(TodaysDish?.RecipeUrl))
+                    {
+                        <div class="col-sm-4 d-flex align-items-center">
+                            <a href="@TodaysDish?.RecipeUrl" target="_blank">
+                                Link to recipe<i class="bi bi-link-45deg"></i>
+                            </a>
+                        </div>
+                    }
+
+                </div>
+                <div class="col-sm-10">
+                    <p class="card-text">@(TodaysDish?.Notes)</p>
+                </div>
+                @if (TodaysDish?.Ingredients?.Any() ?? false)
+                {
+                    <div class="col-sm-10 my-4">
+                        <button class="btn btn-secondary w-50" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseIngredients" aria-expanded="false" aria-controls="collapseIngredients">
+                            Show ingredients
+                        </button>
+                        <div class="collapse" id="collapseIngredients">
+                            <div class="card card-body">
+                                <ul class="list-group">
+                                    @foreach (var ingredient in TodaysDish?.Ingredients)
+                                    {
+                                        <li class="list-group-item">@ingredient</li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+
+                @* </div> *@
+            </div>
+            <div class="col-sm-10 mt-2">
+                <button class="btn btn-secondary mt-3 w-50" @onclick="@OpenModal">@(TodaysDish != null ? "Update the dish" :
+                    "Add a dish")</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (ShowModal == true)
+{
+    <DayCardModal Dish="@TodaysDish" Day="@Day" OnCloseEvent="@CloseModal" HandleOnSaveEvent="@HandleOnSave" />
+}
+
+@code
+{
+    [Parameter]
+    public Days Day { get; set; }
+
+    private Dish? TodaysDish { get; set; }
+
+    private bool ShowModal { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TodaysDish = await DishService.GetTodaysDish(Day);
+    }
+
+    public async Task HandleOnSave((Dish dish, bool update) data)
+    {
+        switch (data.update)
+        {
+            case true:
+                await DishService.AddDish(data.dish);
+                break;
+            default:
+                await DishService.UpdateDish(data.dish);
+                break;
+        }
+        TodaysDish = await DishService.GetTodaysDish(Day);
+    }
+
+    private void CloseModal(bool show)
+    {
+        ShowModal = !show;
+        StateHasChanged();
+    }
+
+    private void OpenModal()
+    {
+        ShowModal = true;
+        StateHasChanged();
+    }
+}

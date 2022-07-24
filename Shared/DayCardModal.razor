@@ -1,0 +1,101 @@
+<div class="modal modal-backdrop bg-dark bg-opacity-75" style="display: block;" id="DayCardModal" tabindex="-1"
+  data-bs-backdrop="static" aria-labelledby="DayCardModalLabel" aria-hidden="false" area-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="DayCardModalLabel">@ModalHeaderText</h5>
+        <button type="button" class="btn-close" aria-label="Close"
+          @onclick="() => OnCloseEvent.InvokeAsync(true)"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group ">
+          <span class="input-group-text">Name of the dish</span>
+          <input class="form-control" type="text" @bind="TitleInput" />
+        </div>
+        <Ingredients IngredientList="IngredientList" OnAddIngredientEvent="OnAddIngredientHandler" />
+        <div class="input-group mt-3">
+          <span class="input-group-text">Notes</span>
+          <textarea class="form-control" placeholder="Write some steps or include an url"
+            @bind="NotesTextArea"></textarea>
+        </div>
+        <div class="input-group my-3">
+          <span class="input-group-text">Url to the recipe (for lazy ppl)</span>
+          <input type="text" class="form-control" @bind="RecipeUrlInput">
+        </div>
+        <div class="input-group my-3">
+          <span class="input-group-text">Url to a tasty image</span>
+          <input type="text" class="form-control" @bind="ImgUrlInput">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" @onclick="OnCloseHandler">Close</button>
+        <button type="button" class="btn btn-primary" @onclick="HandleOnSave">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@code
+{
+  [Parameter]
+  public Dish? Dish { get; set; }
+
+  [Parameter]
+  public Days Day { get; set; }
+
+  [Parameter]
+  public EventCallback<(Dish, bool)> HandleOnSaveEvent { get; set; }
+
+  [Parameter]
+  public EventCallback<bool> OnCloseEvent { get; set; }
+
+  private string TitleInput { get; set; } = string.Empty;
+  private string NotesTextArea { get; set; } = string.Empty;
+  private string ImgUrlInput { get; set; } = string.Empty;
+  private string RecipeUrlInput { get; set; } = string.Empty;
+  public IList<string> IngredientList { get; set; } = null!;
+  public string ModalHeaderText { get; set; } = "Add a new delightful dish!";
+
+  protected override void OnInitialized()
+  {
+    EditOrCreateState();
+  }
+
+  private void EditOrCreateState()
+  {
+    if (Dish != null)
+    {
+      ModalHeaderText = $"Update {Dish.Title}?";
+      TitleInput = Dish.Title;
+      NotesTextArea = Dish.Notes;
+      ImgUrlInput = Dish.ImgUrl ?? string.Empty;
+      RecipeUrlInput = Dish.RecipeUrl ?? string.Empty;
+      IngredientList = Dish.Ingredients.Select(x => x).ToList();
+    }
+  }
+
+  private void OnAddIngredientHandler(IList<string> ingredientList)
+  {
+    IngredientList = ingredientList;
+  }
+
+  private async Task OnCloseHandler()
+  {
+    IngredientList = Dish?.Ingredients.Select(x => x).ToList() ?? new List<string>();
+    await OnCloseEvent.InvokeAsync(true);
+  }
+  private async Task HandleOnSave()
+  {
+    if (Dish == null)
+    {
+      Dish = new Dish(TitleInput, NotesTextArea, ImgUrlInput, RecipeUrlInput, IngredientList, Day);
+      await HandleOnSaveEvent.InvokeAsync((Dish, true));
+    }
+    else
+    {
+      Dish.UpdateDish(TitleInput, NotesTextArea, ImgUrlInput, RecipeUrlInput, IngredientList);
+      await HandleOnSaveEvent.InvokeAsync((Dish, false));
+    }
+    await OnCloseEvent.InvokeAsync(true);
+  }
+}

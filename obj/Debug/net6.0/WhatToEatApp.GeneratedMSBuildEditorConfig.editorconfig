@@ -1,0 +1,56 @@
+is_global = true
+build_property.TargetFramework = net6.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = WhatToEatApp
+build_property.RootNamespace = WhatToEatApp
+build_property.ProjectDir = /Users/peterstjern/Documents/blazor/WhatToEatApp/
+build_property.RazorLangVersion = 6.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/peterstjern/Documents/blazor/WhatToEatApp
+build_property._RazorSourceGeneratorDebug = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/DayCard.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0RheUNhcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/DayCardModal.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0RheUNhcmRNb2RhbC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/Ingredients.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0luZ3JlZGllbnRzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL01haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-k01jo0uaem
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/peterstjern/Documents/blazor/WhatToEatApp/Pages/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0xheW91dC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
