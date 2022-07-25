@@ -41,6 +41,10 @@
     private string IngredientInputField { get; set; } = string.Empty;
     private async Task OnAddIngredient()
     {
+        if (IngredientList is null)
+        {
+            IngredientList = new List<string>();
+        }
         IngredientList!.Add(IngredientInputField);
         await OnAddIngredientEvent.InvokeAsync(IngredientList);
         IngredientInputField = string.Empty;
