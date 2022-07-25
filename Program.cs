@@ -1,4 +1,4 @@
-using WhatToEatApp.Data;
+using WhatToEatApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

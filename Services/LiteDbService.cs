@@ -1,6 +1,6 @@
 using LiteDB;
 
-namespace WhatToEatApp.Data
+namespace WhatToEatApp.Services
 {
     public interface ILiteDbService
     {

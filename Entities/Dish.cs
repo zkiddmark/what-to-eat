@@ -1,53 +1,8 @@
 using LiteDB;
+using WhatToEatApp.Enums;
 
-namespace WhatToEatApp.Data
+namespace WhatToEatApp.Entities
 {
-    public interface IDishService
-    {
-        Task AddDish(Dish dish);
-        Task UpdateDish(Dish dish);
-        Task<Dish?> GetTodaysDish(Days day);
-    }
-
-    public class DishService : IDishService
-    {
-        // private readonly List<Dish> _dishes = new List<Dish>();
-        private readonly ILiteDbService _liteDbService;
-
-        public DishService(ILiteDbService liteDbService)
-        {
-            _liteDbService = liteDbService;
-        }
-
-        public async Task AddDish(Dish dish)
-        {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Dish>("dishes");
-            col.Insert(dish);
-
-            await Task.CompletedTask;
-        }
-
-        public async Task UpdateDish(Dish dish)
-        {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Dish>("dishes");
-            col.Update(dish);
-
-            await Task.CompletedTask;
-        }
-
-        public async Task<Dish?> GetTodaysDish(Days day)
-        {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Dish>("dishes");
-            var dish = col.FindAll().LastOrDefault(x => x.When.Date == Dish.ResolveDayOfWeek(day).Date);
-            // var dish = _dishes.LastOrDefault(x => x.When.Date == Dish.ResolveDayOfWeek(day).Date);
-            return await Task.FromResult<Dish?>(dish);
-        }
-
-    }
-
     public class Dish
     {
         public Dish()
@@ -98,16 +53,5 @@ namespace WhatToEatApp.Data
             var dtDiff = (int)result - (int)dayOfWeek;
             return dtDiff > 0 ? dtNow.AddDays(7 - dtDiff) : dtNow.AddDays(-(dtDiff));
         }
-    }
-
-    public enum Days
-    {
-        Monday = 1,
-        Tuesday = 2,
-        Wednesday = 3,
-        Thursday = 4,
-        Friday = 5,
-        Saturday = 6,
-        Sunday = 7
     }
 }
