@@ -1,0 +1,22 @@
+version: '3.6'
+services:
+    what-to-eat:
+        container_name: what_to_eat
+        image: zkiddmark/what_to_eat_app
+        environment:
+            - ASPNETCORE_ENVIRONMENT=Production
+            - ASPNETCORE_URLS=http://+:5258
+        ports:
+            - '8080:80'
+            - '4433:443'
+        restart: unless-stopped
+        networks:
+            - 'what-to-eat-server'
+        volumes:
+            - ~/what_to_eat:/app/data
+        
+        
+networks:
+    what-to-eat-server:
+      driver: bridge
+      name: what-to-eat-server     
