@@ -6,7 +6,15 @@
         {
             @if (!string.IsNullOrEmpty(TodaysDish?.ImgUrl))
             {
-                <img src="@TodaysDish?.ImgUrl" class="card-img-top" alt="...">
+                <img src="@TodaysDish?.ImgUrl" class="card-img-top" alt="..."
+                    style="max-height: 500px; object-fit: cover">
+            }
+            else 
+            {
+                <img src="@GetRandomImg()"
+                    class="card-img-top opacity-25" 
+                    alt="This a random placeholder picture because you were to lazy to add one that reflects the dish!"
+                    style="max-height: 500px; object-fit: cover">
             }
         }
         <div class="card-body">
@@ -120,5 +128,11 @@
     {
         ShowModal = true;
         StateHasChanged();
+    }
+
+    private string GetRandomImg()
+    {
+        var rnd = new Random();
+        return $"/img/placeholders/placeholder_{rnd.Next(1, 11)}.jpeg";
     }
 }
