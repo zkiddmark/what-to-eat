@@ -1,0 +1,46 @@
+<div class="container d-flex justify-content-end" style="height: 20px">
+    @foreach (var rating in GetRatingStars())
+    {
+        <div class="mx-1 rating @("rating"+rating.Key)" @onmouseover="() => HighlightedRating = rating.Key"
+        @onmouseout="() => HighlightedRating = CurrentRating"
+        @onclick="() => OnRatingChangedEvent.InvokeAsync(rating.Key)">
+            @if (rating.Value == true)
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                    <use href="/svg/star-fill.svg#star-fill" fill="#ffd700"></use>
+                </svg>
+            }
+            else
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                    <use href="/svg/star.svg#star" fill="#ffd700"></use>
+                </svg>
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public int CurrentRating { get; set; }
+    [Parameter]
+    public EventCallback<int> OnRatingChangedEvent { get; set; }
+    private int HighlightedRating { get; set; }
+
+    protected override void OnInitialized()
+    {
+        HighlightedRating = CurrentRating;
+    }
+
+    private Dictionary<int, bool> GetRatingStars()
+    {
+        var ratings = new Dictionary<int, bool>();
+        foreach (var rating in Enumerable.Range(1, 5))
+        {
+            ratings[rating] = rating <= HighlightedRating ? true : false;
+        }
+
+        return ratings;
+    }
+}
