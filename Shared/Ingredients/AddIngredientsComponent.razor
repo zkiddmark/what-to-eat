@@ -1,0 +1,46 @@
+<div class="d-flex">
+    <span class="input-group-text col-4 col-sm-3 rounded-0 rounded-start">Ingredients</span>
+    <div class="col-8 col-sm-9 ps-0">
+        @if (IngredientList?.Any() ?? false)
+        {
+            <div class="d-flex-column">
+                <ul class="rounded-0 rounded-end list-group">
+                    @foreach (var ingredient in IngredientList!)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">@ingredient
+                            <button class="btn btn-danger" @onclick="() => IngredientList.Remove(ingredient)">x</button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+<div class="d-flex mt-1">
+    <input class="form-control rounded-0 rounded-start" type="text" placeholder="Type in the ingredient"
+        @bind-value="IngredientInputField" @bind-value:event="oninput" />
+    <button class="btn btn-secondary rounded-0 rounded-end" @onclick="OnAddIngredient"
+        disabled="@string.IsNullOrEmpty(IngredientInputField)">Add</button>
+</div>
+
+@code
+{
+    [Parameter]
+    public IList<string>? IngredientList { get; set; }
+
+    [Parameter]
+    public EventCallback<IList<string>> OnAddIngredientEvent { get; set; }
+
+    private string IngredientInputField { get; set; } = string.Empty;
+    private async Task OnAddIngredient()
+    {
+        if (IngredientList is null)
+        {
+            IngredientList = new List<string>();
+        }
+        IngredientList!.Add(IngredientInputField);
+        await OnAddIngredientEvent.InvokeAsync(IngredientList);
+        IngredientInputField = string.Empty;
+    }
+
+}

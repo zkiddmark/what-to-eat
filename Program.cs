@@ -1,4 +1,5 @@
-using WhatToEatApp.Services;
+using WhatToEatApp.Services.Persistance;
+using WhatToEatApp.Services.Dish;
 
 var builder = WebApplication.CreateBuilder(args);
 

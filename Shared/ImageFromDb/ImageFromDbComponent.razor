@@ -1,0 +1,44 @@
+@inject IDishService DishService;
+
+@if (!string.IsNullOrEmpty(ImgUrl))
+{
+    <img src="@ImgUrl" class="card-img-top" alt="..." style="max-height: 500px; object-fit: cover">
+}
+else
+{
+    <p>Loading image</p>
+}
+
+@code
+{
+    private string _imgUrl = string.Empty;
+    private string _imgId = string.Empty;
+
+    [Parameter]
+    public string? ImageId { get; set; }
+
+    private string ImgUrl => _imgUrl;
+
+    @* protected override async Task OnInitializedAsync()
+        {
+        await LoadImageFromDbAsync();
+        } *@
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _imgUrl = string.Empty;
+        await LoadImageFromDbAsync();
+    }
+
+    private async Task LoadImageFromDbAsync()
+    {
+        if (ImageId is null)
+        {
+            throw new InvalidOperationException("Component should never be loaded without an ImageId");
+        }
+        var base64String = await DishService.GetImageFromDbAsync(ImageId);
+        var src = $"data:image/jpg;base64,{base64String}";
+        _imgUrl = src;
+    }
+
+}
