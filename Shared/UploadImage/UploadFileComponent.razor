@@ -1,0 +1,26 @@
+@inject IDishService DishService;
+<div class="input-group mb-3">
+    <label class="input-group-text btn btn-secondary rounded w-100" for="inputGroupFile01">Upload an image</label>
+    <InputFile class="form-control" OnChange="@UploadFile" id="inputGroupFile01" style="display: none" />
+</div>
+<div>
+
+</div>
+
+@code
+{
+    private IBrowserFile? _image;
+
+    [Parameter]
+    public EventCallback<IBrowserFile?> OnSetImageFile { get; set; }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        _image = await e.File.RequestImageFileAsync("jpg", 500, 500);
+        if (_image.Size > 3000000)
+        {
+            throw new InvalidOperationException("No images larger than 3MB");
+        }
+        await OnSetImageFile.InvokeAsync(_image);
+    }
+}

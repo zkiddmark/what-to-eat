@@ -9,22 +9,33 @@
       </div>
       <div class="modal-body">
         <div class="input-group ">
-          <span class="input-group-text">Name of the dish</span>
-          <input class="form-control" type="text" @bind="TitleInput" />
+          <span class="input-group-text col-4 col-sm-3 text-wrap">Name of the dish</span>
+          <input class="form-control col-8 col-sm-9" type="text" @bind="TitleInput" />
         </div>
-        <Ingredients IngredientList="IngredientList" OnAddIngredientEvent="OnAddIngredientHandler" />
+        <div class="list-group mt-3">
+          <AddIngredientsComponent IngredientList="IngredientList" OnAddIngredientEvent="OnAddIngredientHandler" />
+        </div>
         <div class="input-group mt-3">
-          <span class="input-group-text">Notes</span>
-          <textarea class="form-control" placeholder="Write some steps or include an url"
+          <span class="input-group-text col-4 col-sm-3">Notes</span>
+          <textarea class="form-control col-8 col-sm-9" placeholder="Write some steps or include an url"
             @bind="NotesTextArea"></textarea>
         </div>
         <div class="input-group my-3">
-          <span class="input-group-text">Url to the recipe (for lazy ppl)</span>
-          <input type="text" class="form-control" @bind="RecipeUrlInput">
+          <span class="input-group-text text-wrap col-4 col-sm-3">Url to the recipe (for lazy ppl)</span>
+          <input type="text" class="form-control col-8 col-sm-9" @bind="RecipeUrlInput">
         </div>
         <div class="input-group my-3">
-          <span class="input-group-text">Url to a tasty image</span>
-          <input type="text" class="form-control" @bind="ImgUrlInput">
+          <span class="input-group-text text-wrap col-4 col-sm-3">Url to a tasty image</span>
+          <input type="text" class="form-control col-8 col-sm-9" @bind="ImgUrlInput">
+        </div>
+        <div class="input-group my-3">
+          <UploadFileComponent OnSetImageFile="(image) => UploadedImage = image" />
+          @if (ImageId is not null || UploadedImage is not null)
+          {
+            <button class="btn btn-danger rounded w-100" @onclick="() => ImageId = null">
+              Delete image
+            </button>
+          }
         </div>
       </div>
       <div class="modal-footer">
@@ -38,13 +49,13 @@
 @code
 {
   [Parameter]
-  public Dish? Dish { get; set; }
+  public DishDto? Dish { get; set; }
 
   [Parameter]
   public Days Day { get; set; }
 
   [Parameter]
-  public EventCallback<(Dish, bool)> HandleOnSaveEvent { get; set; }
+  public EventCallback<(DishDto, bool)> HandleOnSaveEvent { get; set; }
 
   [Parameter]
   public EventCallback<bool> OnCloseEvent { get; set; }
@@ -55,6 +66,10 @@
   private string RecipeUrlInput { get; set; } = string.Empty;
   public IList<string> IngredientList { get; set; } = null!;
   public string ModalHeaderText { get; set; } = "Add a new delightful dish!";
+
+  private IBrowserFile? UploadedImage { get; set; }
+  public string? ImageId { get; set; }
+
 
   protected override void OnInitialized()
   {
@@ -71,6 +86,7 @@
       ImgUrlInput = Dish.ImgUrl ?? string.Empty;
       RecipeUrlInput = Dish.RecipeUrl ?? string.Empty;
       IngredientList = Dish.Ingredients.Select(x => x).ToList();
+      ImageId = Dish.ImageId;
     }
   }
 
@@ -88,12 +104,27 @@
   {
     if (Dish == null)
     {
-      Dish = new Dish(TitleInput, NotesTextArea, ImgUrlInput, RecipeUrlInput, IngredientList, Day);
+      Dish = new DishDto
+      {
+        Title = TitleInput,
+        Notes = NotesTextArea,
+        ImgUrl = ImgUrlInput,
+        RecipeUrl = RecipeUrlInput,
+        Ingredients = IngredientList,
+        Image = UploadedImage,
+        When = Day.ResolveDayOfWeek()
+      };
       await HandleOnSaveEvent.InvokeAsync((Dish, true));
     }
     else
     {
-      Dish.UpdateDish(TitleInput, NotesTextArea, ImgUrlInput, RecipeUrlInput, IngredientList);
+      Dish.Title = TitleInput;
+      Dish.Notes = NotesTextArea;
+      Dish.ImgUrl = ImgUrlInput;
+      Dish.RecipeUrl = RecipeUrlInput;
+      Dish.Ingredients = IngredientList;
+      Dish.Image = UploadedImage;
+      Dish.ImageId = ImageId;
       await HandleOnSaveEvent.InvokeAsync((Dish, false));
     }
     await OnCloseEvent.InvokeAsync(true);

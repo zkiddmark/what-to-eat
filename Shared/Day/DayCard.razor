@@ -4,30 +4,35 @@
     <div class="row g-0 justify-content-center">
         @if (TodaysDish != null)
         {
-            @if (!string.IsNullOrEmpty(TodaysDish?.ImgUrl))
+            @if (!string.IsNullOrEmpty(TodaysDish.ImageId))
             {
-                <img src="@TodaysDish?.ImgUrl" class="card-img-top" alt="..."
-                    style="max-height: 500px; object-fit: cover">
+                <ImageFromDbComponent ImageId="@TodaysDish.ImageId" />
             }
-            else 
+            else if (!string.IsNullOrEmpty(TodaysDish?.ImgUrl))
             {
-                <img src="@GetRandomImg()"
-                    class="card-img-top opacity-25" 
-                    alt="This a random placeholder picture because you were to lazy to add one that reflects the dish!"
-                    style="max-height: 500px; object-fit: cover">
+                <img src="@TodaysDish?.ImgUrl" class="card-img-top" alt="..." style="max-height: 500px; object-fit: cover">
+            }
+            else
+            {
+                <img src="@GetRandomImg()" class="card-img-top opacity-25"
+            alt="This a random placeholder picture because you were to lazy to add one that reflects the dish!"
+            style="max-height: 500px; object-fit: cover">
             }
         }
         <div class="card-body">
             <div class="row">
                 <div class="col-sm-12 d-flex">
-                    <h5 class="card-title mb-4">@Day.ToString() <span class="fs-6 text">@(TodaysDish != null ? $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h5>
-                    @if(TodaysDish is not null) {
+                    <h5 class="card-title mb-4">@Day.ToString() <span class="fs-6 text">@(TodaysDish != null ?
+                            $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h5>
+                    @if (TodaysDish is not null)
+                    {
                         <RatingComponent CurrentRating="@TodaysDish!.Rating" OnRatingChangedEvent="@UpdateRatingAsync" />
                     }
                 </div>
                 <div class="row mb-4">
                     <div class="col-sm-8 d-flex align-items-center">
-                        <h6 class="card-subtitle text-muted">@(TodaysDish?.Title ?? "No dish, go ahead and plan one!")</h6>
+                        <h6 class="card-subtitle text-muted">@(TodaysDish?.Title ?? "No dish, go ahead and plan one!")
+                        </h6>
                     </div>
                     @if (!string.IsNullOrEmpty(TodaysDish?.RecipeUrl))
                     {
@@ -44,8 +49,8 @@
                 </div>
                 @if (TodaysDish?.Ingredients?.Any() ?? false)
                 {
-                    <div class="col-sm-10 my-4">
-                        <button class="btn btn-secondary w-50" type="button" data-bs-toggle="collapse"
+                    <div class="col-xs-12 col-sm-10 my-4">
+                        <button class="btn btn-secondary w-100" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapseIngredients" aria-expanded="false" aria-controls="collapseIngredients">
                             Show ingredients
                         </button>
@@ -63,14 +68,14 @@
                 }
             </div>
             <div class="row mt-3">
-                <div class="col-sm-10 mt-2">
-                    <button class="btn btn-secondary w-50" @onclick="@OpenModal">@(TodaysDish != null ? "Update the dish" :
+                <div class="col-xs-12 col-sm-10 mt-2">
+                    <button class="btn btn-secondary w-100" @onclick="@OpenModal">@(TodaysDish != null ? "Update the dish" :
                         "Add a dish")</button>
                 </div>
-                @if(TodaysDish is not null)
+                @if (TodaysDish is not null)
                 {
-                    <div class="col-sm-2 mt-2">
-                            <button class="btn btn-danger" @onclick="@DeleteTodaysDish">
+                    <div class="col-xs-12 col-sm-2 mt-2">
+                        <button class="btn btn-danger w-100" @onclick="@DeleteTodaysDish">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -89,7 +94,7 @@
     [Parameter]
     public Days Day { get; set; }
 
-    private Dish? TodaysDish { get; set; }
+    private DishDto? TodaysDish { get; set; }
 
     private bool ShowModal { get; set; }
 
@@ -98,32 +103,34 @@
         TodaysDish = await DishService.GetTodaysDish(Day);
     }
 
-    public async Task HandleOnSave((Dish dish, bool newDish) data)
+    public async Task HandleOnSave((DishDto dish, bool newDish) data)
     {
+
         switch (data.newDish)
         {
             case true:
-                await DishService.AddDish(data.dish);
+                await DishService.AddDishAsync(data.dish);
                 break;
             default:
-                await DishService.UpdateDish(data.dish);
+                await DishService.UpdateDishAsync(data.dish);
                 break;
         }
+
         TodaysDish = await DishService.GetTodaysDish(Day);
     }
 
     private async Task DeleteTodaysDish()
     {
-        if(TodaysDish is not null)
+        if (TodaysDish is not null)
         {
-            await DishService.DeleteDish(TodaysDish);
+            await DishService.DeleteDishAsync(TodaysDish);
             TodaysDish = null; // set to null since it has been deleted.
         }
     }
 
     private async Task UpdateRatingAsync(int rating)
     {
-        if(TodaysDish is not null)
+        if (TodaysDish is not null)
         {
             TodaysDish!.Rating = rating;
             await HandleOnSave((TodaysDish, false));

@@ -11,21 +11,25 @@ namespace WhatToEatApp.Entities
             Ingredients = new List<string>();
         }
         public Dish(
+            ObjectId? dishId,
             string title,
             string notes,
             string? imgUrl,
             string? recipeUrl,
             IList<string> ingredients,
-            Days when)
+            int rating,
+            DateTimeOffset when,
+            string? imageId)
         {
-            DishId = new ObjectId();
+            DishId = dishId ?? new ObjectId();
             Title = title;
             Notes = notes;
             ImgUrl = imgUrl;
             RecipeUrl = recipeUrl;
             Ingredients = ingredients;
-            Rating = 0;
-            When = Dish.ResolveDayOfWeek(when);
+            Rating = rating;
+            When = when;
+            ImageId = imageId;
         }
 
         public ObjectId DishId { get; set; }
@@ -36,22 +40,17 @@ namespace WhatToEatApp.Entities
         public IList<string> Ingredients { get; set; }
         public int Rating { get; set; }
         public DateTimeOffset When { get; private set; }
+        public string? ImageId { get; set; }
 
-        public void UpdateDish(string title, string notes, string? imgUrl, string? recipeUrl, IList<string> ingredients)
+        public void UpdateDish(Dish updatedDish)
         {
-            Title = title;
-            Notes = notes;
-            ImgUrl = imgUrl;
-            RecipeUrl = recipeUrl;
-            Ingredients = ingredients;
-        }
-
-        public static DateTimeOffset ResolveDayOfWeek(Days dayOfWeek)
-        {
-            var dtNow = DateTimeOffset.UtcNow;
-            var parsed = Enum.TryParse<Days>(dtNow.DayOfWeek.ToString(), out Days result);
-            var dtDiff = (int)result - (int)dayOfWeek;
-            return dtDiff > 0 ? dtNow.AddDays(7 - dtDiff) : dtNow.AddDays(-(dtDiff));
+            Title = updatedDish.Title;
+            Notes = updatedDish.Notes;
+            ImgUrl = updatedDish.ImgUrl;
+            RecipeUrl = updatedDish.RecipeUrl;
+            Ingredients = updatedDish.Ingredients;
+            Rating = updatedDish.Rating;
+            ImageId = updatedDish.ImageId;
         }
     }
 }
