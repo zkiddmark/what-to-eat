@@ -1,0 +1,65 @@
+@inject IFirebaseService FirebaseService;
+@inject FirebaseAuthStateProvider FirebaseAuthStateProvider;
+@inject NavigationManager Navigation;
+
+@page "/login"
+@attribute [AllowAnonymous]
+<div class="d-flex flex-column align-items-center">
+    <div class="border rounded w-50 p-3">
+        <div>
+            <h3 class="text-muted">Please sign in</h3>
+        </div>
+        <form>
+            <div class="mb-3">
+                <label for="emailInput" class="form-label">Email address</label>
+                <input type="email" class="form-control @(WrongCredentials == true ? "is-invalid" : "")" id="emailInput"
+                    aria-describedby="emailHelp" @bind="Email" @oninput="() => WrongCredentials = false">
+                <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="passwordInput" class="form-label">Password</label>
+                <input type="password" class="form-control @(WrongCredentials == true ? "is-invalid" : "")"
+                    id="passwordInput" @bind="Password" @oninput="() => WrongCredentials = false">
+                <div class="invalid-feedback">
+                    Invalid email and/or password.
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary w-100" @onclick="InitiateLogin"
+                @onclick:preventDefault="PreventDefault" @onsubmit="InitiateLogin"
+                @onsubmit:preventDefault="PreventDefault">Submit</button>
+        </form>
+    </div>
+</div>
+
+
+@code
+{
+    bool PreventDefault = true;
+    bool WrongCredentials = false;
+    public string? Email { get; set; }
+    public string? Password { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (await FirebaseService.IsUserSignedIn())
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    public async Task InitiateLogin()
+    {
+        if (string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Password))
+        {
+            return;
+        }
+        try
+        {
+            await FirebaseService.Authenticate(Email, Password);
+            Navigation.NavigateTo("/");
+        }
+        catch (JSException)
+        {
+            WrongCredentials = true;
+        }
+    }
+}

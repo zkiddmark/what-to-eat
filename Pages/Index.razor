@@ -1,7 +1,12 @@
-﻿@page "/"
+﻿@inject IFirebaseService FirebaseService;
+@inject FirebaseAuthStateProvider FirebaseAuthStateProvider;
+@inject NavigationManager Navigation;
+
+@page "/"
 <div class="container justify-content-center">
     <h1 class="text-primary text-muted text-center">What to eat</h1>
     <div class="container-fluid ">
+        <button class="btn btn-secondary" @onclick="async () => await SignOut()">Logout</button>
         @foreach (var day in Enum.GetValues<Days>())
         {
             <div class="row justify-content-center">
@@ -10,5 +15,15 @@
                 </div>
             </div>
         }
+
     </div>
 </div>
+
+@code
+{
+    private async Task SignOut()
+    {
+        await FirebaseService.SignOut();
+        Navigation.NavigateTo("/login");
+    }
+}

@@ -17,7 +17,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon/favicon-16x16.png">
     <link rel="manifest" href="/img/favicon/site.webmanifest">
     <link href="css/site.css" rel="stylesheet" />
-    <link href="WhatToEatApp.styles.css" rel="stylesheet" />
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 
@@ -35,7 +34,49 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script src="_framework/blazor.server.js"></script>
+    <script autostart="false" src="_framework/blazor.server.js"></script>
+    <script type="module" src="js/firebaseAuth.js"></script>
+    <script>
+        async function connectionDown(options) {
+            console.log("Client disconnected")
+            for (var i = 0; i < options.maxRetries; i++) {
+                await delay(options.retryIntervalMilliseconds);
+                if (this.isDisposed) {
+                    break;
+                }
+                try {
+                    const connectionResult = await window.Blazor.reconnect();
+                    if (!connectionResult) {
+                        // Do something
+                    }
+                    // Managed to reconnect
+                    return;
+                } catch {
+                    // Do something
+                    console.error("Unable to reconnect, will try again.")
+                }
+            }
+        }
+
+        async function connectionUp(options) {
+            console.log("Client connected.")
+        }
+
+        function delay(durationMilliseconds) {
+            return new Promise(resolve => setTimeout(resolve, durationMilliseconds));
+        }
+
+        window.Blazor.start({
+            reconnectOptions: {
+                maxRetries: 30,
+                retryIntervalMilliseconds: 500
+            },
+            reconnectionHandler: {
+                onConnectionDown: e => connectionDown(e),
+                onConnectionUp: e => connectionUp(e)
+            }
+        });
+    </script>
 </body>
 
 </html>
