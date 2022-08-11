@@ -3,10 +3,16 @@
 @inject NavigationManager Navigation;
 
 @page "/"
-<div class="container justify-content-center">
-    <h1 class="text-primary text-muted text-center">What to eat</h1>
-    <div class="container-fluid ">
-        <button class="btn btn-secondary" @onclick="async () => await SignOut()">Logout</button>
+<div class="container">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-center align-items-center">
+            <h1 class="text-primary text-muted text-center me-3">What to eat</h1>
+            <button class="btn btn-outline-secondary ms-3 h-50" @onclick="async () => await SignOut()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                    <use href="/svg/box-arrow-right.svg#box-arrow-right" fill="#ffd700"></use>
+                </svg>
+            </button>
+        </div>
         @foreach (var day in Enum.GetValues<Days>())
         {
             <div class="row justify-content-center">
@@ -15,7 +21,6 @@
                 </div>
             </div>
         }
-
     </div>
 </div>
 
