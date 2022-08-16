@@ -1,0 +1,136 @@
+<div class="card" style="width: 100%;">
+    <div class="row g-0 justify-content-center">
+        <ResolveImageComponent DishDto=@DishDto />
+        <div class="card-body">
+            <div class="row">
+                <div class="col-sm-12 mb-4">
+                    <RatingComponent CurrentRating="@DishDto!.Rating" ReadOnlyRating="true" />
+                </div>
+                <div class="row mb-4">
+                    <div class="col-sm-8 d-flex align-items-center">
+                        <h6 class="card-subtitle text-muted">@(DishDto?.Title)
+                        </h6>
+                    </div>
+                    @if (!string.IsNullOrEmpty(DishDto?.RecipeUrl))
+                    {
+                        <div class="col-sm-4 mt-2 d-flex align-items-center">
+                            <a href="@DishDto?.RecipeUrl" target="_blank">
+                                Link to recipe<i class="bi bi-link-45deg"></i>
+                            </a>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-10">
+                    <p class="card-text">@(DishDto?.Notes)</p>
+                </div>
+                <IngredientsComponent DishDto="@DishDto" />
+            </div>
+            <div class="row mt-3">
+                <div class="flex-column col-10 col-sm-10">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            Eat again!
+                        </button>
+                        <ul class="dropdown-menu">
+                            @foreach (var day in Enum.GetValues<Days>())
+                            {
+                                <li class="dropdown-item" @onclick="() => ScheduleNextTime(day)">@day
+                                    <span class="text-muted">(@GetDateString(day.ResolveDayOfWeek()))</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <p class="card-text"><small class="text-muted">@_nextTime</small></p>
+                </div>
+                <div class="col-1 col-sm-2 px-0">
+                    <button class="btn btn-danger btn-sm" @onclick="() => _openConfirmation = true">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@if (_openConfirmation == true)
+{
+    var options = OpenConfirmDialog();
+    <DynamicComponent Type="@Type.GetType($"WhatToEatApp.Shared.ConfirmDialog.{options.Name}")"
+    Parameters="@options.Parameters" />
+}
+
+
+@code
+{
+    private string _nextTime = "Not scheduled";
+    private bool _openConfirmation = false;
+
+    [Parameter]
+    public DishDto? DishDto { get; set; }
+
+    [Parameter]
+    public EventCallback<PreviousDishEventArgs> OnScheduleNextTime { get; set; }
+
+    [Parameter]
+    public EventCallback<DishDto> OnDeleteDish { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var dtNow = DateTimeOffset.UtcNow;
+        _nextTime = DishDto?.When.Date >= dtNow.Date
+        ? $"Scheduled on {GetDateString(DishDto.When)}"
+        : "Not scheduled";
+    }
+
+    private string GetDateString(DateTimeOffset dt)
+    {
+        return dt.ToString("yyyy-MM-dd");
+    }
+
+    private async Task ScheduleNextTime(Days day)
+    {
+        var dt = day.ResolveDayOfWeek();
+        if (dt.Date == DishDto!.When.Date)
+        {
+            return;
+        }
+        _nextTime = $"{day} ({GetDateString(dt)})";
+
+        var eventArgs = new PreviousDishEventArgs()
+        {
+            DtWhen = dt,
+            DishId = DishDto!.DishId!
+        };
+
+        await OnScheduleNextTime.InvokeAsync(eventArgs);
+    }
+
+    private async Task DeleteDishAsync()
+    {
+        await OnDeleteDish.InvokeAsync(DishDto);
+    }
+
+    private ConfirmDialogOptions OpenConfirmDialog()
+    {
+        var options = new ConfirmDialogOptions
+        {
+            Parameters = new()
+            {
+                { "Title", "Delete dish" },
+                { "Question", "Are you sure you want to delete this dish?" },
+                { "Result", EventCallback.Factory.Create<bool>(this, DialogResult) }
+            }
+        };
+        _openConfirmation = true;
+        return options;
+    }
+
+    private async Task DialogResult(bool result)
+    {
+        if (result == true)
+        {
+            await DeleteDishAsync();
+        }
+        _openConfirmation = false;
+    }
+}

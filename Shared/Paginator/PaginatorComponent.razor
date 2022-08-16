@@ -1,0 +1,94 @@
+<nav aria-label="Page navigation example">
+    <ul class="pagination">
+        <li class="page-item btn ps-3 pe-0 @(_activePage.IsFirstPage ? "disabled" : "")">
+            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex - 1)" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        @foreach (var page in _pages)
+        {
+            <li class="page-item btn px-0 @(page.IsActive == true ? "active" : "")">
+                <a class="page-link" @onclick="() => OnPageChanged(page.PageIndex)">@(page.PageIndex)</a>
+            </li>
+        }
+        <li class="page-item btn ps-0 @(_activePage.IsLastPage ? "disabled" : "")">
+            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex + 1)" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+@code
+{
+    private bool _pagesSet = false;
+    private PaginatorPages _activePage = null!;
+    private List<PaginatorPages> _pages = new();
+
+    [Parameter]
+    public int Skip { get; set; } = 0;
+
+    [Parameter]
+    public int Take { get; set; } = 10;
+
+    [Parameter]
+    public int TotalItems { get; set; }
+
+    [Parameter]
+    public EventCallback<PaginatorEventArgs> OnPageChangedEvent { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (TotalItems <= 0)
+        {
+            throw new ArgumentOutOfRangeException("Number of TotalItems must be specified");
+        }
+        SetPages();
+    }
+
+    private void SetPages()
+    {
+        if (!_pagesSet)
+        {
+            var pages = TotalItems / 10;
+            pages += TotalItems % 10 > 0 ? 1 : 0;
+
+            var iteration = 0;
+            foreach (var page in Enumerable.Range(1, pages))
+            {
+                iteration += 1;
+                _pages.Add(new()
+                {
+                    PageIndex = iteration,
+                    IsFirstPage = iteration == 1 ? true : false,
+                    IsLastPage = iteration == pages ? true : false,
+                    IsActive = iteration == 1 ? true : false
+                });
+            }
+            _activePage = _pages.First();
+            _pagesSet = true;
+        }
+    }
+
+    private async Task OnPageChanged(int pageIndex)
+    {
+        _pages.First(x => x.PageIndex == _activePage.PageIndex).IsActive = false;
+        var newActivePage = _pages.First(x => x.PageIndex == pageIndex);
+        newActivePage.IsActive = true;
+        _activePage = newActivePage;
+        var args = new PaginatorEventArgs
+        {
+            Skip = Take * (_activePage.PageIndex - 1),
+            Take = Take
+        };
+        await OnPageChangedEvent.InvokeAsync(args);
+    }
+
+    private class PaginatorPages
+    {
+        public int PageIndex { get; set; }
+        public bool IsFirstPage { get; set; }
+        public bool IsLastPage { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

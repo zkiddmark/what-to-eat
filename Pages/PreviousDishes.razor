@@ -1,0 +1,67 @@
+@inject IDishService DishService;
+@page "/previousDishes"
+
+<div class="container-fluid" style="max-width: 520px;">
+    <h1 class="text-primary text-muted text-center me-3">All dishes, Wow!</h1>
+    <PaginatorComponent OnPageChangedEvent="(page) => OnPageChanged(page)" TotalItems="@DishesCount" />
+    <ul class="list-group list-group-flush border-none">
+        @foreach (var dishDto in Dishes.Skip(_skip).Take(_take))
+        {
+            <li class="list-group-item border-none">
+                <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
+                OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" />
+            </li>
+        }
+    </ul>
+</div>
+
+@code
+{
+    private int _skip = 0;
+    private int _take = 10;
+
+    private List<DishDto> Dishes { get; set; } = new();
+    private int DishesCount { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDishesAsync(_skip, _take);
+    }
+
+    private async Task LoadDishesAsync(int skip, int take)
+    {
+        Dishes.AddRange(await DishService.GetAllDishes(skip, take));
+        DishesCount = await DishService.DishesCount();
+    }
+
+    public async Task OnPageChanged(PaginatorEventArgs args)
+    {
+        if (Dishes.Count() <= args.Skip)
+        {
+            Dishes.AddRange(await DishService.GetAllDishes(args.Skip, args.Take));
+        }
+        _skip = args.Skip;
+        _take = args.Take;
+    }
+
+    public async Task OnScheduleNextTimeHandler(PreviousDishEventArgs e)
+    {
+        var scheduledDish = Dishes.SingleOrDefault(x => x.When.Date == e.DtWhen.Date);
+        if (scheduledDish is not null)
+        {
+            scheduledDish.When = DateTimeOffset.MinValue;
+            await DishService.UpdateDishAsync(scheduledDish);
+        }
+
+        var dishToSchedule = Dishes.First(x => x.DishId == e.DishId);
+        dishToSchedule.When = e.DtWhen;
+        await DishService.UpdateDishAsync(dishToSchedule);
+    }
+
+    public async Task OnDeleteDishHandler(DishDto dishDto)
+    {
+        await DishService.DeleteDishAsync(dishDto);
+        Dishes.Clear();
+        await LoadDishesAsync(0, _take);
+    }
+}

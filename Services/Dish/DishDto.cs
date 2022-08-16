@@ -19,7 +19,7 @@ namespace WhatToEatApp.Services.Dish
 
     public static class DishDtoExtensions
     {
-        public static Entities.Dish MapToDish(this DishDto dishDto)
+        public static Entities.Dish MapToNewDish(this DishDto dishDto)
         {
             return new Entities.Dish(dishDto.DishId, dishDto.Title, dishDto.Notes, dishDto.ImgUrl,
             dishDto.RecipeUrl, dishDto.Ingredients, dishDto.Rating, dishDto.When, dishDto.ImageId);
@@ -36,7 +36,8 @@ namespace WhatToEatApp.Services.Dish
                 Ingredients = dish.Ingredients,
                 Notes = dish.Notes,
                 RecipeUrl = dish.RecipeUrl,
-                Rating = dish.Rating
+                Rating = dish.Rating,
+                When = dish.When
             };
         }
     }

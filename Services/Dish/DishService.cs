@@ -9,6 +9,8 @@ namespace WhatToEatApp.Services.Dish
         Task AddDishAsync(DishDto dish);
         Task UpdateDishAsync(DishDto dish);
         Task DeleteDishAsync(DishDto dish);
+        Task<IEnumerable<DishDto>> GetAllDishes(int skip = 0, int take = 10);
+        Task<int> DishesCount();
         Task<DishDto?> GetTodaysDish(Days day);
         Task<string> GetImageFromDbAsync(string imgId);
     }
@@ -25,7 +27,7 @@ namespace WhatToEatApp.Services.Dish
 
         public async Task AddDishAsync(DishDto dishDto)
         {
-            var newDish = dishDto.MapToDish();
+            var newDish = dishDto.MapToNewDish();
             if (dishDto.Image is not null)
             {
                 var imageId = await AddImageFromFileAsync(dishDto.Image, dishDto.Title);
@@ -34,7 +36,7 @@ namespace WhatToEatApp.Services.Dish
 
             using var instance = _liteDbService.CreateInstance();
             var col = instance.GetCollection<Entities.Dish>("dishes");
-            var result = col.Insert(dishDto.MapToDish());
+            var result = col.Insert(dishDto.MapToNewDish());
             await Task.CompletedTask;
         }
 
@@ -51,14 +53,13 @@ namespace WhatToEatApp.Services.Dish
                 await DeleteImage(dishToUpdate.ImageId);
             }
 
-            dishToUpdate.UpdateDish(dishDto.MapToDish());
+            dishToUpdate.UpdateDish(dishDto.MapToNewDish());
 
             if (dishDto.Image is not null)
             {
                 var imageId = await AddImageFromFileAsync(dishDto.Image, dishDto.Title);
                 dishToUpdate.ImageId = imageId;
             }
-
             col.Update(dishToUpdate);
             await Task.CompletedTask;
         }
@@ -78,6 +79,27 @@ namespace WhatToEatApp.Services.Dish
             await Task.CompletedTask;
         }
 
+        public async Task<IEnumerable<DishDto>> GetAllDishes(int skip = 0, int take = 10)
+        {
+            using var instance = _liteDbService.CreateInstance();
+            var col = instance.GetCollection<Entities.Dish>("dishes");
+            var dishes = col.FindAll()
+                .OrderByDescending(x => x.Rating)
+                .Skip(skip)
+                .Take(take)
+                .Select(x => x.MapToDishDto())
+                .ToList();
+            return await Task.FromResult<IEnumerable<DishDto>>(dishes);
+        }
+
+        public async Task<int> DishesCount()
+        {
+            using var instance = _liteDbService.CreateInstance();
+            var col = instance.GetCollection<Entities.Dish>("dishes");
+            var dishesCount = col.Count();
+            return await Task.FromResult<int>(dishesCount);
+        }
+
         public async Task<DishDto?> GetTodaysDish(Days day)
         {
             using var instance = _liteDbService.CreateInstance();
@@ -91,6 +113,7 @@ namespace WhatToEatApp.Services.Dish
             dishDto.When = day.ResolveDayOfWeek();
             return await Task.FromResult<DishDto?>(dishDto);
         }
+
         public async Task<string> GetImageFromDbAsync(string imgId)
         {
             if (imgId is null)

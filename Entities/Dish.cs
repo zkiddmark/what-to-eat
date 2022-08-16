@@ -33,13 +33,13 @@ namespace WhatToEatApp.Entities
         }
 
         public ObjectId DishId { get; set; }
-        public string Title { get; private set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; }
         public int Rating { get; set; }
-        public DateTimeOffset When { get; private set; }
+        public DateTimeOffset When { get; set; }
         public string? ImageId { get; set; }
 
         public void UpdateDish(Dish updatedDish)
@@ -51,6 +51,7 @@ namespace WhatToEatApp.Entities
             Ingredients = updatedDish.Ingredients;
             Rating = updatedDish.Rating;
             ImageId = updatedDish.ImageId;
+            When = updatedDish.When;
         }
     }
 }
