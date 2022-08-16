@@ -19,11 +19,6 @@ else
 
     private string ImgUrl => _imgUrl;
 
-    @* protected override async Task OnInitializedAsync()
-        {
-        await LoadImageFromDbAsync();
-        } *@
-
     protected override async Task OnParametersSetAsync()
     {
         _imgUrl = string.Empty;

@@ -1,0 +1,45 @@
+@inject IFirebaseService FirebaseService;
+@inject NavigationManager Navigation;
+
+<nav class="navbar navbar-expand bg-light mb-3">
+    <div class="container-fluid" style="max-width: 520px;">
+        <NavLink class="navbar-brand d-flex justify-items-center" href="/" style="color: var(--bs-secondary);">
+            <button class="btn btn-outline-secondary">
+                <i class="bi bi-house"></i>
+            </button>
+        </NavLink>
+        <ul class="navbar-nav w-100 justify-content-between">
+            <li class="nav-item">
+                <NavLink class="nav-link" style="color: var(--bs-secondary);" href="previousDishes">
+                    <button class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                            <use href="/svg/forkandknife.svg#icon-forkandknife"></use>
+                        </svg>
+                    </button>
+                </NavLink>
+            </li>
+            <li class="nav-item d-flex align-items-center">
+                <button class="btn btn-outline-secondary" @onclick="async () => await SignOut()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                        <use href="/svg/box-arrow-right.svg#box-arrow-right"></use>
+                    </svg>
+                </button>
+            </li>
+        </ul>
+        @* </div> *@
+    </div>
+</nav>
+
+@code
+{
+    private async Task SignOut()
+    {
+        await FirebaseService.SignOut();
+        Navigation.NavigateTo("/login");
+    }
+
+    private void ToPreviousDishes()
+    {
+        Navigation.NavigateTo("/previousDishes");
+    }
+}
