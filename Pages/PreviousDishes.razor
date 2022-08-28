@@ -1,18 +1,20 @@
 @inject IDishService DishService;
 @page "/previousDishes"
 
-<div class="container-fluid" style="max-width: 520px;">
+<div class="container-fluid">
     <h1 class="text-primary text-muted text-center me-3">All dishes, Wow!</h1>
-    <PaginatorComponent OnPageChangedEvent="(page) => OnPageChanged(page)" TotalItems="@DishesCount" />
-    <ul class="list-group list-group-flush border-none">
+    <div class="d-flex justify-content-center">
+        <PaginatorComponent OnPageChangedEvent="(page) => OnPageChanged(page)" TotalItems="@DishesCount" />
+    </div>
+    <div class="row d-flex justify-content-center">
         @foreach (var dishDto in Dishes.Skip(_skip).Take(_take))
         {
-            <li class="list-group-item border-none">
+            <div class="col-md-6 mb-5" style="max-width: 520px;">
                 <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
                 OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" />
-            </li>
+            </div>
         }
-    </ul>
+    </div>
 </div>
 
 @code
