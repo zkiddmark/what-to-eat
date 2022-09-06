@@ -1,11 +1,11 @@
 @if (DishDto?.Ingredients?.Any() ?? false)
 {
-    <div class="col-xs-12 col-sm-10 my-4">
-    <button class="btn btn-secondary btn-sm w-100" type="button" data-bs-toggle="collapse"
-        data-bs-target="#collapseIngredients" aria-expanded="false" aria-controls="collapseIngredients">
+    <div class="col-xs-12 col-lg-10 my-4">
+    <button class="btn btn-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#@Uid"
+        aria-expanded="false" aria-controls="collapseIngredients">
         Show ingredients
     </button>
-    <div class="collapse" id="collapseIngredients">
+    <div class="collapse" id="@Uid">
         <div class="card card-body">
             <ul class="list-group">
                 @foreach (var ingredient in DishDto!.Ingredients)
@@ -22,4 +22,6 @@
 {
     [Parameter]
     public DishDto? DishDto { get; set; }
+
+    private string? Uid => $"uid{DishDto!.DishId!.ToString()}";
 }
