@@ -3,17 +3,17 @@
 
 <div class="container-fluid">
     <h1 class="text-primary text-muted text-center me-3">All dishes, Wow!</h1>
-    <div class="d-flex justify-content-center">
+    <div class="d-flex flex-column align-items-center">
         <PaginatorComponent OnPageChangedEvent="(page) => OnPageChanged(page)" TotalItems="@DishesCount" />
-    </div>
-    <div class="row d-flex justify-content-center">
-        @foreach (var dishDto in Dishes.Skip(_skip).Take(_take))
-        {
-            <div class="col-md-6 mb-5" style="max-width: 520px;">
-                <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
-                OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" />
-            </div>
-        }
+        <div class="row" style=" max-width: 1040px;">
+            @foreach (var dishDto in Dishes.Skip(_skip).Take(_take))
+            {
+                <div class="d-flex justify-content-center col-md-6 mb-5">
+                    <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
+                    OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" />
+                </div>
+            }
+        </div>
     </div>
 </div>
 

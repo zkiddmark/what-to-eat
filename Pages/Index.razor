@@ -1,11 +1,11 @@
 ﻿@page "/"
-<div class="container">
-    <h1 class="text-primary text-muted text-center me-3">What to eat</h1>
-    <div class="container-fluid">
-        <div class="row justify-content-start">
+<div class="container-fluid">
+    <div class="d-flex flex-column align-items-center">
+        <h1 class="text-primary text-muted me-3">What to eat</h1>
+        <div class="row" style=" max-width: 1040px;">
             @foreach (var day in Enum.GetValues<Days>())
             {
-                <div class="col-md-6 my-3" style="max-width: 520px;">
+                <div class="d-flex justify-content-center col-md-6 my-3">
                     <DayCard Day=day />
                 </div>
             }
