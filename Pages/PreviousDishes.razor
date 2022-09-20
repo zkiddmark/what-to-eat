@@ -6,7 +6,7 @@
     <div class="d-flex flex-column align-items-center">
         <PaginatorComponent OnPageChangedEvent="(page) => OnPageChanged(page)" TotalItems="@DishesCount" />
         <div class="row" style=" max-width: 1040px;">
-            @foreach (var dishDto in Dishes.Skip(_skip).Take(_take))
+            @foreach (var dishDto in Dishes)
             {
                 <div class="d-flex justify-content-center col-md-6 mb-5">
                     <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
@@ -38,12 +38,10 @@
 
     public async Task OnPageChanged(PaginatorEventArgs args)
     {
-        if (Dishes.Count() <= args.Skip)
-        {
-            Dishes.AddRange(await DishService.GetAllDishes(args.Skip, args.Take));
-        }
+        Dishes.Clear();
         _skip = args.Skip;
         _take = args.Take;
+        Dishes.AddRange(await DishService.GetAllDishes(args.Skip, args.Take));
     }
 
     public async Task OnScheduleNextTimeHandler(PreviousDishEventArgs e)
@@ -64,6 +62,6 @@
     {
         await DishService.DeleteDishAsync(dishDto);
         Dishes.Clear();
-        await LoadDishesAsync(0, _take);
+        await LoadDishesAsync(_skip, _take);
     }
 }
