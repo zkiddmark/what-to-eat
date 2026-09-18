@@ -1,6 +1,6 @@
 ---
 story: 002
-status: in-review
+status: done
 issue: 7
 ---
 
@@ -112,3 +112,28 @@ Vid fel: vilken rätt som fallerade och varför, och att inget skrivits (allt-el
 - Migreringen körd mot en kopia av `WhatToEat-20260918.db` med noll tappade rätter och bilder.
 - Före/efter-jämförelse av listvy och en bildrätt gjord.
 - Inga referenser till LiteDB kvar i koden utom i migreringsverktyget.
+
+## Verifierat efter merge (2026-09-18, mergad main `0bfea30`)
+
+Kört mot en kopia av prod-backupen:
+
+```
+  Rätter:  31 lästa, 31 skrivna
+  Bilder:  24 lästa, 24 skrivna
+```
+
+Maskinell fält-för-fält-jämförelse mellan LiteDB (läst via `BsonMapper`, som appen läste den)
+och SQLite: **noll skillnader** i `Title`, `Notes`, `ImgUrl`, `RecipeUrl`, `Ingredients`,
+`Rating`, `ImageId`, i `When`-instanten, i det visade datumet, och i bildernas md5.
+`docker build` grönt. Källfilens checksumma oförändrad före/efter.
+
+`AsDateTime` visade sig ge `Kind=Local`, så `ToLocalOffset` blir en korrekt rundtur — inte
+den timmes förskjutning som riskerade att uppstå.
+
+Kvar, otestat: bilduppladdning genom UI:t. Appen kan inte startas lokalt utan
+`ExcludedSecrets/firebaseConfig.json`, som inte finns i repot.
+
+Mindre avvikelse, inte åtgärdad: rätter med **samma betyg** sorteras i annan inbördes ordning
+än före migreringen, eftersom `OrderByDescending(Rating)` saknar sekundär sortering. Ordningen
+är stabil mellan anrop, så paginering hoppar inte över eller dubblerar rätter — men listan ser
+inte exakt ut som förut. Se story om sekundär sortering.
