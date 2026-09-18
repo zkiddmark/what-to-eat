@@ -1,7 +1,14 @@
-using WhatToEatApp.Services.Persistance;
+using Microsoft.EntityFrameworkCore;
+using WhatToEatApp.Data;
+using WhatToEatApp.DataMigration;
 using WhatToEatApp.Services.Dish;
 using WhatToEatApp.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
+
+if (args.Length > 0 && args[0] == "--migrate-litedb")
+{
+    return LiteDbToSqliteMigrator.Run(args);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("./ExcludedSecrets/firebaseConfig.json");
@@ -13,7 +20,8 @@ builder.Services.Configure<FirebaseOptions>(
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddAuthorizationCore();
-builder.Services.AddSingleton<ILiteDbService, LiteDbService>();
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
 builder.Services.AddTransient<IDishService, DishService>();
 builder.Services.AddScoped<IFirebaseService, FirebaseService>();
 builder.Services.AddScoped<FirebaseAuthStateProvider>();
@@ -40,3 +48,5 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+
+return 0;

@@ -1,11 +1,10 @@
-using LiteDB;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace WhatToEatApp.Services.Dish
 {
     public class DishDto
     {
-        public ObjectId? DishId { get; set; }
+        public Guid DishId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string? ImgUrl { get; set; }
@@ -29,7 +28,7 @@ namespace WhatToEatApp.Services.Dish
         {
             return new DishDto
             {
-                DishId = dish.DishId,
+                DishId = dish.Id,
                 Title = dish.Title,
                 ImageId = dish.ImageId,
                 ImgUrl = dish.ImgUrl,

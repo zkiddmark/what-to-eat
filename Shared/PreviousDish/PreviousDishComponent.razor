@@ -99,7 +99,7 @@
         var eventArgs = new PreviousDishEventArgs()
         {
             DtWhen = dt,
-            DishId = DishDto!.DishId!
+            DishId = DishDto!.DishId
         };
 
         await OnScheduleNextTime.InvokeAsync(eventArgs);

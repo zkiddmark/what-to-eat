@@ -1,17 +1,14 @@
-using LiteDB;
-using WhatToEatApp.Enums;
-
 namespace WhatToEatApp.Entities
 {
     public class Dish
     {
         public Dish()
         {
-            DishId = new ObjectId();
+            Id = Guid.NewGuid();
             Ingredients = new List<string>();
         }
         public Dish(
-            ObjectId? dishId,
+            Guid id,
             string title,
             string notes,
             string? imgUrl,
@@ -21,7 +18,7 @@ namespace WhatToEatApp.Entities
             DateTimeOffset when,
             string? imageId)
         {
-            DishId = dishId ?? new ObjectId();
+            Id = id == Guid.Empty ? Guid.NewGuid() : id;
             Title = title;
             Notes = notes;
             ImgUrl = imgUrl;
@@ -32,7 +29,7 @@ namespace WhatToEatApp.Entities
             ImageId = imageId;
         }
 
-        public ObjectId DishId { get; set; }
+        public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string? ImgUrl { get; set; }

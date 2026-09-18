@@ -23,5 +23,5 @@
     [Parameter]
     public DishDto? DishDto { get; set; }
 
-    private string? Uid => $"uid{DishDto!.DishId!.ToString()}";
+    private string? Uid => $"uid{DishDto!.DishId.ToString()}";
 }
