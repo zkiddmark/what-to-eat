@@ -37,20 +37,28 @@ namespace WhatToEatApp.DataMigration
             using var db = new AppDbContext(options);
             db.Database.Migrate();
 
+            if (db.Dishes.Any() || db.DishImages.Any())
+            {
+                Console.Error.WriteLine($"Måldatabasen '{target}' innehåller redan data. Migreringen är en engångskörning — kör mot en tom fil. Inget har skrivits.");
+                return 1;
+            }
+
             using var lite = new LiteDatabase($"Filename={source};Connection=shared;ReadOnly=true");
             var dishes = lite.GetCollection<BsonDocument>("dishes").FindAll().ToList();
             var storage = lite.GetStorage<string>("wteImages", "wteChunks");
             var files = storage.FindAll().ToList();
 
             using var transaction = db.Database.BeginTransaction();
-            var dishesWritten = 0;
-            var imagesWritten = 0;
+            var dishesRead = 0;
+            var imagesRead = 0;
+            var currentDish = "(ingen)";
             try
             {
                 foreach (var doc in dishes)
                 {
+                    currentDish = doc.TryGetValue("Title", out var title) && title.IsString ? title.AsString : "(namnlös)";
                     db.Dishes.Add(MapDish(doc));
-                    dishesWritten++;
+                    dishesRead++;
                 }
 
                 foreach (var file in files)
@@ -63,7 +71,7 @@ namespace WhatToEatApp.DataMigration
                         FileName = file.Filename,
                         Content = ms.ToArray()
                     });
-                    imagesWritten++;
+                    imagesRead++;
                 }
 
                 db.SaveChanges();
@@ -72,15 +80,31 @@ namespace WhatToEatApp.DataMigration
             catch (Exception ex)
             {
                 transaction.Rollback();
-                Console.Error.WriteLine($"Fel efter {dishesWritten} lästa rätter och {imagesWritten} lästa bilder: {ex.InnerException?.Message ?? ex.Message}");
+                Console.Error.WriteLine($"Fel vid \"{currentDish}\" (efter {dishesRead} lästa rätter och {imagesRead} lästa bilder): {ex.InnerException?.Message ?? ex.Message}");
                 Console.Error.WriteLine("Inget har skrivits — allt rullades tillbaka.");
                 return 1;
             }
 
-            Console.WriteLine($"  Rätter:  {dishes.Count} lästa, {dishesWritten} skrivna");
-            Console.WriteLine($"  Bilder:  {files.Count} lästa, {imagesWritten} skrivna");
+            Console.WriteLine($"  Rätter:  {dishes.Count} lästa, {db.Dishes.Count()} skrivna");
+            Console.WriteLine($"  Bilder:  {files.Count} lästa, {db.DishImages.Count()} skrivna");
             Console.WriteLine("  Klart. Originalfilen är orörd.");
             return 0;
+        }
+
+        /// <summary>
+        /// LiteDB lagrar DateTime i UTC. Vi normaliserar explicit till UTC i stället för att
+        /// förlita oss på värdets Kind, och uttrycker det sedan i maskinens lokala offset —
+        /// samma tid som LiteDB-versionen visade. Kör migreringen i samma tidszon som appen.
+        /// </summary>
+        private static DateTimeOffset ToLocalOffset(DateTime value)
+        {
+            var utc = value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+            };
+            return new DateTimeOffset(utc).ToLocalTime();
         }
 
         private static Dish MapDish(BsonDocument doc)
@@ -97,7 +121,7 @@ namespace WhatToEatApp.DataMigration
                 doc["RecipeUrl"].IsNull ? null : doc["RecipeUrl"].AsString,
                 ingredients,
                 doc["Rating"].AsInt32,
-                doc["When"].AsDateTime,
+                ToLocalOffset(doc["When"].AsDateTime),
                 doc["ImageId"].IsNull ? null : doc["ImageId"].AsString);
         }
     }
