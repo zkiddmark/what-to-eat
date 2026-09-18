@@ -115,14 +115,34 @@ namespace WhatToEatApp.DataMigration
 
             return new Dish(
                 Guid.NewGuid(),
-                doc["Title"].AsString,
-                doc["Notes"].AsString,
-                doc["ImgUrl"].IsNull ? null : doc["ImgUrl"].AsString,
-                doc["RecipeUrl"].IsNull ? null : doc["RecipeUrl"].AsString,
+                Required(doc, "Title").AsString,
+                OptionalText(doc, "Notes") ?? string.Empty,
+                OptionalText(doc, "ImgUrl"),
+                OptionalText(doc, "RecipeUrl"),
                 ingredients,
-                doc["Rating"].AsInt32,
-                ToLocalOffset(doc["When"].AsDateTime),
-                doc["ImageId"].IsNull ? null : doc["ImageId"].AsString);
+                Required(doc, "Rating").AsInt32,
+                ToLocalOffset(Required(doc, "When").AsDateTime),
+                OptionalText(doc, "ImageId"));
         }
+
+        /// <summary>
+        /// Gamla dokument saknar nycklar helt eller har dem satta till null — LiteDB skiljer
+        /// inte på fallen vid indexering. Textfält utan värde blir null, och Notes blir
+        /// string.Empty, samma tomma fält som användaren ser idag.
+        /// </summary>
+        private static string? OptionalText(BsonDocument doc, string field)
+        {
+            return doc.TryGetValue(field, out var value) && !value.IsNull ? value.AsString : null;
+        }
+
+        private static BsonValue Required(BsonDocument doc, string field)
+        {
+            if (!doc.TryGetValue(field, out var value) || value.IsNull)
+            {
+                throw new InvalidOperationException($"Fältet '{field}' saknas eller är null.");
+            }
+            return value;
+        }
+
     }
 }
