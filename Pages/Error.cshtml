@@ -15,8 +15,12 @@
 <body>
     <div class="main">
         <div class="content px-4">
-            <h1 class="text-danger">Error.</h1>
-            <h2 class="text-danger">An error occurred while processing your request.</h2>
+            <h1 class="text-danger">Något gick fel.</h1>
+            <h2 class="text-danger">Det gick inte att läsa dina maträtter just nu.</h2>
+            <p>
+                Ladda om sidan och försök igen. Om felet kvarstår går databasen inte att öppna —
+                kontrollera att datafilen finns på plats i <code>/app/data</code> och starta om appen.
+            </p>
 
             @if (Model.ShowRequestId)
             {

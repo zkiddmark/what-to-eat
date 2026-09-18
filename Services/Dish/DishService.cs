@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.EntityFrameworkCore;
+using WhatToEatApp.Data;
 using WhatToEatApp.Enums;
-using WhatToEatApp.Services.Persistance;
 
 namespace WhatToEatApp.Services.Dish
 {
@@ -17,12 +18,11 @@ namespace WhatToEatApp.Services.Dish
 
     public class DishService : IDishService
     {
-        // private readonly List<Dish> _dishes = new List<Dish>();
-        private readonly ILiteDbService _liteDbService;
+        private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
 
-        public DishService(ILiteDbService liteDbService)
+        public DishService(IDbContextFactory<AppDbContext> dbContextFactory)
         {
-            _liteDbService = liteDbService;
+            _dbContextFactory = dbContextFactory;
         }
 
         public async Task AddDishAsync(DishDto dishDto)
@@ -34,18 +34,16 @@ namespace WhatToEatApp.Services.Dish
                 newDish.ImageId = imageId;
             }
 
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
-            var result = col.Insert(dishDto.MapToNewDish());
-            await Task.CompletedTask;
+            using var db = _dbContextFactory.CreateDbContext();
+            db.Dishes.Add(dishDto.MapToNewDish());
+            await db.SaveChangesAsync();
         }
 
         public async Task UpdateDishAsync(DishDto dishDto)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
+            using var db = _dbContextFactory.CreateDbContext();
             // Get dish from db.
-            var dishToUpdate = col.FindById(dishDto.DishId);
+            var dishToUpdate = await db.Dishes.FirstAsync(x => x.Id == dishDto.DishId);
 
             // Image has changed, remove the old one.
             if (dishToUpdate.ImageId is not null && dishToUpdate.ImageId != dishDto.ImageId)
@@ -60,58 +58,50 @@ namespace WhatToEatApp.Services.Dish
                 var imageId = await AddImageFromFileAsync(dishDto.Image, dishDto.Title);
                 dishToUpdate.ImageId = imageId;
             }
-            col.Update(dishToUpdate);
-            await Task.CompletedTask;
+            await db.SaveChangesAsync();
         }
 
         public async Task DeleteDishAsync(DishDto dishDto)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
-            col.Delete(dishDto.DishId);
+            using var db = _dbContextFactory.CreateDbContext();
+            await db.Dishes.Where(x => x.Id == dishDto.DishId).ExecuteDeleteAsync();
 
             // If the dish had an associated image, delete it.
             if (dishDto.ImageId is not null)
             {
                 await DeleteImage(dishDto.ImageId);
             }
-
-            await Task.CompletedTask;
         }
 
         public async Task<IEnumerable<DishDto>> GetAllDishes(int skip = 0, int take = 10)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
-            var dishes = col.FindAll()
+            using var db = _dbContextFactory.CreateDbContext();
+            var dishes = await db.Dishes
                 .OrderByDescending(x => x.Rating)
                 .Skip(skip)
                 .Take(take)
-                .Select(x => x.MapToDishDto())
-                .ToList();
-            return await Task.FromResult<IEnumerable<DishDto>>(dishes);
+                .ToListAsync();
+            return dishes.Select(x => x.MapToDishDto()).ToList();
         }
 
         public async Task<int> DishesCount()
         {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
-            var dishesCount = col.Count();
-            return await Task.FromResult<int>(dishesCount);
+            using var db = _dbContextFactory.CreateDbContext();
+            return await db.Dishes.CountAsync();
         }
 
         public async Task<DishDto?> GetTodaysDish(Days day)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var col = instance.GetCollection<Entities.Dish>("dishes");
-            var dish = col.FindAll().LastOrDefault(x => x.When.Date == day.ResolveDayOfWeek().Date);
+            using var db = _dbContextFactory.CreateDbContext();
+            var dishes = await db.Dishes.ToListAsync();
+            var dish = dishes.LastOrDefault(x => x.When.Date == day.ResolveDayOfWeek().Date);
             var dishDto = dish?.MapToDishDto();
             if (dishDto is null)
             {
                 return null;
             }
             dishDto.When = day.ResolveDayOfWeek();
-            return await Task.FromResult<DishDto?>(dishDto);
+            return dishDto;
         }
 
         public async Task<string> GetImageFromDbAsync(string imgId)
@@ -120,40 +110,48 @@ namespace WhatToEatApp.Services.Dish
             {
                 throw new InvalidOperationException("imgId must not be null!");
             }
-            using var instance = _liteDbService.CreateInstance();
-            using var ms = new MemoryStream();
-
-            var fs = instance.GetStorage<string>("wteImages", "wteChunks");
-            if (!fs.Exists(imgId))
+            if (!Guid.TryParse(imgId, out var imageId))
             {
                 return string.Empty;
             }
 
-            var str = fs.OpenRead(imgId);
+            using var db = _dbContextFactory.CreateDbContext();
+            var content = await db.DishImages
+                .Where(x => x.Id == imageId)
+                .Select(x => x.Content)
+                .FirstOrDefaultAsync();
 
-            await str.CopyToAsync(ms);
-            return Convert.ToBase64String(ms.ToArray());
+            if (content is null)
+            {
+                return string.Empty;
+            }
+            return Convert.ToBase64String(content);
         }
 
         private async Task<string> AddImageFromFileAsync(IBrowserFile file, string title)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var fs = instance.GetStorage<string>("wteImages", "wteChunks");
-            var ms = new MemoryStream();
+            using var db = _dbContextFactory.CreateDbContext();
+            using var ms = new MemoryStream();
             await file.OpenReadStream().CopyToAsync(ms);
-            ms.Position = 0;
-            var newId = Guid.NewGuid().ToString();
-            fs.Upload(newId, CreateSafeImageTitle(title), ms);
-            return newId;
+            var newId = Guid.NewGuid();
+            db.DishImages.Add(new Entities.DishImage
+            {
+                Id = newId,
+                FileName = CreateSafeImageTitle(title),
+                Content = ms.ToArray()
+            });
+            await db.SaveChangesAsync();
+            return newId.ToString();
         }
 
         private async Task DeleteImage(string imageId)
         {
-            using var instance = _liteDbService.CreateInstance();
-            var fs = instance.GetStorage<string>("wteImages", "wteChunks");
-            fs.Delete(imageId);
-
-            await Task.CompletedTask;
+            if (!Guid.TryParse(imageId, out var id))
+            {
+                return;
+            }
+            using var db = _dbContextFactory.CreateDbContext();
+            await db.DishImages.Where(x => x.Id == id).ExecuteDeleteAsync();
         }
 
         private string CreateSafeImageTitle(string title)
@@ -161,8 +159,5 @@ namespace WhatToEatApp.Services.Dish
             var dtNow = DateTimeOffset.UtcNow.ToString("yyMMdd_HHmmss");
             return $"{title}_{dtNow}";
         }
-
-
-
     }
 }

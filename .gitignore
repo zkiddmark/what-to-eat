@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 WhatToEat.db
+*.sqlite
 ExcludedSecrets/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
