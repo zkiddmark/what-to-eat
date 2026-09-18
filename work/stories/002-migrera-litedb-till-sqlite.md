@@ -51,6 +51,20 @@ vad bytet kräver.
 - [ ] Rullar man tillbaka till föregående version fungerar appen fortfarande mot den gamla
       LiteDB-filen (den raderas inte som en del av storyn).
 
+## Testdata
+
+En verifierad kopia av produktionsdatabasen finns lokalt, utanför repot:
+
+```
+~/what-to-eat/prod-backup/WhatToEat-20260918.db   (8,6 MB, LiteDB v5)
+```
+
+Hämtad från `peter@webserver01:~/what_to_eat/WhatToEat.db` 2026-09-18, md5 verifierad mot
+originalet (`7c462fc6...`) och satt read-only. Migreringen ska verifieras mot **en kopia av
+denna fil**, inte mot filen på servern och inte mot originalkopian.
+
+Filen får aldrig committas — den innehåller produktionsdata.
+
 ## Flöde
 1. Driftsättningen kör migreringsverktyget mot befintlig `WhatToEat.db`.
 2. Verktyget rapporterar hur många rätter och hur många bilder som flyttats.
@@ -73,6 +87,6 @@ Migrerar WhatToEat.db -> whattoeat.sqlite
 Vid fel: vilken rätt som fallerade och varför, och att inget skrivits (allt-eller-inget).
 
 ## Klar när
-- Migreringen körd mot en kopia av produktionsdatan med noll tappade rätter och bilder.
+- Migreringen körd mot en kopia av `WhatToEat-20260918.db` med noll tappade rätter och bilder.
 - Före/efter-jämförelse av listvy och en bildrätt gjord.
 - Inga referenser till LiteDB kvar i koden utom i migreringsverktyget.
