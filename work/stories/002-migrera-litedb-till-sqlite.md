@@ -1,6 +1,6 @@
 ---
 story: 002
-status: in-review
+status: in-progress
 issue: 7
 ---
 
