@@ -1,6 +1,6 @@
 ---
 story: 002
-status: in-review
+status: in-progress
 issue: 7
 ---
 
@@ -47,6 +47,8 @@ vad bytet kräver.
 - [ ] Laddning: listan känns inte långsammare än tidigare vid normal datamängd.
 - [ ] Fel: om databasen saknas eller inte går att öppna visas ett begripligt felmeddelande
       på svenska med vad användaren kan göra — inte en stacktrace eller vit sida.
+- [ ] Migreringen går igenom mot en kopia av `WhatToEat-20260918.db` med exit-kod 0 och
+      rapporterar `31 lästa, 31 skrivna` rätter och `24 lästa, 24 skrivna` bilder.
 - [ ] Migreringen är körbar mot en kopia och **rör aldrig originalfilen** — den läses bara.
 - [ ] Rullar man tillbaka till föregående version fungerar appen fortfarande mot den gamla
       LiteDB-filen (den raderas inte som en del av storyn).
@@ -64,6 +66,26 @@ originalet (`7c462fc6...`) och satt read-only. Migreringen ska verifieras mot **
 denna fil**, inte mot filen på servern och inte mot originalkopian.
 
 Filen får aldrig committas — den innehåller produktionsdata.
+
+### Vad produktionsdatan faktiskt innehåller (mätt 2026-09-18)
+
+31 rätter, 24 bilder. Fält som saknas eller är null i BSON — det är dessa migreringen
+måste tåla, och det är här den seedade testfilen ljög:
+
+| Fält | saknad nyckel | null | konsekvens |
+|---|---|---|---|
+| `Notes` | 10 | 5 | **15 av 31 rätter fäller `NOT NULL`-villkoret** |
+| `ImgUrl` | 8 | 6 | ok, nullbar kolumn |
+| `RecipeUrl` | 7 | 6 | ok, nullbar kolumn |
+| `Ingredients` | 3 | 0 | ok, `IsArray`-kontrollen ger tom lista |
+| `ImageId` | 16 | 0 | ok, nullbar kolumn |
+| `Title`, `Rating`, `When` | 0 | 0 | alltid satta i denna datamängd |
+
+Dessutom: 9 av 24 bilder är föräldralösa (ingen rätt pekar på dem) och alla bild-id:n är
+giltiga Guid:er. Föräldralösa bilder ska följa med — de finns i LiteDB idag.
+
+`Notes` ska mappas till `string.Empty` när nyckeln saknas eller är null, vilket är samma
+värde som `Entities/Dish` redan har som default och samma tomma fält som användaren ser idag.
 
 ## Flöde
 1. Driftsättningen kör migreringsverktyget mot befintlig `WhatToEat.db`.
