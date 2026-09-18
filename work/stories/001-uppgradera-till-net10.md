@@ -1,6 +1,6 @@
 ---
 story: 001
-status: planned
+status: in-progress
 issue: 6
 ---
 
