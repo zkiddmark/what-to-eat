@@ -25,6 +25,12 @@ namespace WhatToEatApp.Data
             modelBuilder.Entity<Dish>(dish =>
             {
                 dish.HasKey(x => x.Id);
+                dish.HasIndex(x => x.OwnerId);
+                // RESTRICT: att avslå eller ta bort en användare ska inte tyst radera recepten.
+                dish.HasOne<AppUser>()
+                    .WithMany()
+                    .HasForeignKey(x => x.OwnerId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 dish.Property(x => x.Ingredients)
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),

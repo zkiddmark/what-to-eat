@@ -2,6 +2,7 @@ using LiteDB;
 using Microsoft.EntityFrameworkCore;
 using WhatToEatApp.Data;
 using WhatToEatApp.Entities;
+using WhatToEatApp.Services.Auth;
 
 namespace WhatToEatApp.DataMigration
 {
@@ -37,6 +38,19 @@ namespace WhatToEatApp.DataMigration
             using var db = new AppDbContext(options);
             db.Database.Migrate();
 
+            // Rätterna behöver en ägare, och ägarskapet sätts av servern. Admin-kontot skapas
+            // när appen startar; utan det finns ingen att peka på.
+            var owner = db.Users.FirstOrDefault(x => x.Email == UserSeeder.AdminEmail);
+            if (owner is null)
+            {
+                Console.Error.WriteLine(
+                    $"Ingen användare med e-post {UserSeeder.AdminEmail} finns i måldatabasen. " +
+                    "Starta appen en gång med ADMIN_INITIAL_PASSWORD satt så att kontot skapas, " +
+                    "och kör sedan migreringen igen. Inget har skrivits.");
+                return 1;
+            }
+            var ownerId = owner.Id;
+
             if (db.Dishes.Any() || db.DishImages.Any())
             {
                 Console.Error.WriteLine($"Måldatabasen '{target}' innehåller redan data. Migreringen är en engångskörning — kör mot en tom fil. Inget har skrivits.");
@@ -70,7 +84,7 @@ namespace WhatToEatApp.DataMigration
                 foreach (var doc in dishes)
                 {
                     currentDish = doc.TryGetValue("Title", out var title) && title.IsString ? title.AsString : "(namnlös)";
-                    db.Dishes.Add(MapDish(doc));
+                    db.Dishes.Add(MapDish(doc, ownerId));
                     dishesRead++;
                 }
 
@@ -120,7 +134,7 @@ namespace WhatToEatApp.DataMigration
             return new DateTimeOffset(utc).ToLocalTime();
         }
 
-        private static Dish MapDish(BsonDocument doc)
+        private static Dish MapDish(BsonDocument doc, Guid ownerId)
         {
             var ingredients = doc["Ingredients"].IsArray
                 ? doc["Ingredients"].AsArray.Select(x => x.AsString).ToList()
@@ -128,6 +142,7 @@ namespace WhatToEatApp.DataMigration
 
             return new Dish(
                 Guid.NewGuid(),
+                ownerId,
                 Required(doc, "Title").AsString,
                 OptionalText(doc, "Notes") ?? string.Empty,
                 OptionalText(doc, "ImgUrl"),
