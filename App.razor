@@ -1,4 +1,3 @@
-﻿@inject IFirebaseService FirebaseService;
 @inject NavigationManager Navigation;
 
 <CascadingAuthenticationState>
@@ -7,9 +6,12 @@
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 @* <FocusOnNavigate RouteData="@routeData" Selector="h1" /> *@
                 <NotAuthorized>
-                    @{
-                        RedirectToLogin();
-                    };
+                    <LayoutView Layout="@typeof(MainLayout)">
+                        <p role="alert">
+                            Du måste vara inloggad för att se den här sidan.
+                            <a href="/login">Logga in</a>.
+                        </p>
+                    </LayoutView>
                 </NotAuthorized>
             </AuthorizeRouteView>
         </Found>
@@ -21,16 +23,3 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
-
-@code
-{
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await FirebaseService.InitializeFirebase();
-    }
-
-    private void RedirectToLogin()
-    {
-        Navigation.NavigateTo("/login", false);
-    }
-}

@@ -13,6 +13,7 @@ namespace WhatToEatApp.Data
 
         public DbSet<Dish> Dishes => Set<Dish>();
         public DbSet<DishImage> DishImages => Set<DishImage>();
+        public DbSet<AppUser> Users => Set<AppUser>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,6 +35,13 @@ namespace WhatToEatApp.Data
             modelBuilder.Entity<DishImage>(image =>
             {
                 image.HasKey(x => x.Id);
+            });
+
+            modelBuilder.Entity<AppUser>(user =>
+            {
+                user.HasKey(x => x.Id);
+                user.HasIndex(x => x.Email).IsUnique();
+                user.Property(x => x.Status).HasConversion<int>();
             });
         }
     }
