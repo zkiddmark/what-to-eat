@@ -18,7 +18,7 @@ namespace WhatToEatApp.Services.Auth
     {
         Success,
         EmailAlreadyRegistered,
-        PasswordTooShort,
+        PasswordLengthInvalid,
     }
 
     public interface IUserService
@@ -59,9 +59,9 @@ namespace WhatToEatApp.Services.Auth
 
         public async Task<RegisterResult> RegisterAsync(string alias, string email, string password)
         {
-            if (password.Length < MinimumPasswordLength)
+            if (password.Length < MinimumPasswordLength || password.Length > MaximumPasswordLength)
             {
-                return RegisterResult.PasswordTooShort;
+                return RegisterResult.PasswordLengthInvalid;
             }
 
             using var db = _dbContextFactory.CreateDbContext();
@@ -102,9 +102,12 @@ namespace WhatToEatApp.Services.Auth
                 return (LoginResult.InvalidCredentials, null);
             }
 
-            // En spärrad inloggning ger samma generiska svar som fel lösenord.
+            // En spärrad inloggning ger samma generiska svar som fel lösenord — och måste ta
+            // lika lång tid. Utan verifieringen nedan svarar ett spärrat konto dubbelt så
+            // snabbt, vilket i sig avslöjar att adressen finns.
             if (user.LockedUntil is not null && user.LockedUntil > DateTimeOffset.UtcNow)
             {
+                _passwordHasher.VerifyHashedPassword(new AppUser(), _dummyHash, password);
                 return (LoginResult.InvalidCredentials, null);
             }
 

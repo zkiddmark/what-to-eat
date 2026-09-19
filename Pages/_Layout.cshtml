@@ -23,6 +23,9 @@
 <body>
     @RenderBody()
 
+    <form id="logout-form" method="post" action="/logout" class="d-none">
+        @Html.AntiForgeryToken()
+    </form>
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
             Något gick fel. Det gick inte att läsa dina maträtter — ladda om sidan och försök igen.
@@ -35,6 +38,7 @@
         <a class="dismiss">🗙</a>
     </div>
 
+    <script src="js/logout.js" asp-append-version="true"></script>
     <script autostart="false" src="_framework/blazor.server.js"></script>
     <script>
         Blazor.start().then(() => {

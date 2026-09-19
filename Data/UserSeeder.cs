@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WhatToEatApp.Entities;
 using WhatToEatApp.Enums;
+using WhatToEatApp.Services.Auth;
 
 namespace WhatToEatApp.Data
 {
@@ -33,6 +34,16 @@ namespace WhatToEatApp.Data
                 logger.LogWarning(
                     "Ingen användare finns och {Setting} är inte satt — inget administratörskonto skapades. " +
                     "Sätt variabeln och starta om för att kunna logga in.", PasswordSetting);
+                return;
+            }
+
+            if (password.Length < UserService.MinimumPasswordLength
+                || password.Length > UserService.MaximumPasswordLength)
+            {
+                logger.LogWarning(
+                    "{Setting} bryter mot appens egen lösenordspolicy ({Min}-{Max} tecken) — " +
+                    "inget administratörskonto skapades.",
+                    PasswordSetting, UserService.MinimumPasswordLength, UserService.MaximumPasswordLength);
                 return;
             }
 

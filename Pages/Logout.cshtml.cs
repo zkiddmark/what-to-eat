@@ -15,11 +15,14 @@ namespace WhatToEatApp.Pages
             _userService = userService;
         }
 
-        public async Task<IActionResult> OnGetAsync() => await SignOutAndRedirectAsync();
+        /// <summary>
+        /// Utloggningen ligger bara på POST. En GET som muterar tillstånd går att utlösa från
+        /// en annan sajt, och rotationen av SecurityStamp släcker användarens sessioner
+        /// överallt — inte bara i den här webbläsaren.
+        /// </summary>
+        public IActionResult OnGet() => Redirect("~/");
 
-        public async Task<IActionResult> OnPostAsync() => await SignOutAndRedirectAsync();
-
-        private async Task<IActionResult> SignOutAndRedirectAsync()
+        public async Task<IActionResult> OnPostAsync()
         {
             // Stämpeln roteras så att en sparad kopia av den gamla cookien slutar gälla.
             var userId = AuthClaims.GetUserId(User);

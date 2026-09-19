@@ -1,4 +1,5 @@
 @inject NavigationManager Navigation;
+@inject IJSRuntime JS;
 
 <nav class="navbar navbar-expand bg-light mb-3">
     <div class="container-fluid" style="max-width: 520px;">
@@ -38,11 +39,12 @@
 
 @code
 {
-    private void SignOut()
+    private async Task SignOut()
     {
-        // Utloggningen måste gå via en riktig begäran: cookien kan inte tas bort
-        // från en Blazor-krets, där svaret för länge sedan är skickat.
-        Navigation.NavigateTo("/logout", forceLoad: true);
+        // Cookien kan inte tas bort från en Blazor-krets, och utloggningen ligger bara
+        // på POST. Knappen postar därför formuläret med antiforgery-token som ligger
+        // i _Layout.
+        await JS.InvokeVoidAsync("submitLogout");
     }
 
     private void ToPreviousDishes()

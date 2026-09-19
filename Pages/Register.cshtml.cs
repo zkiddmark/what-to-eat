@@ -72,7 +72,8 @@ namespace WhatToEatApp.Pages
                     ErrorMessage = "Det finns redan ett konto med den e-postadressen.";
                     return Page();
                 default:
-                    ErrorMessage = "Lösenordet måste vara minst 12 tecken.";
+                    ErrorMessage = $"Lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
+                        $"och {UserService.MaximumPasswordLength} tecken.";
                     return Page();
             }
         }
