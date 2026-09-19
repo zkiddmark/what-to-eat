@@ -10,7 +10,8 @@
             {
                 <div class="d-flex justify-content-center col-md-6 mb-5">
                     <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
-                    OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" OnVoteChanged="@ReloadCurrentPageAsync" />
+                    OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" OnVoteChanged="@ReloadCurrentPageAsync"
+                    OnDishUpdated="@ReloadCurrentPageAsync" />
                 </div>
             }
         </div>

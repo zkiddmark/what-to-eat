@@ -1,3 +1,6 @@
+@inject IDishService DishService;
+@inject ILogger<PreviousDishComponent> Logger;
+
 <div class="card border-0" style="max-width: 520px;">
     <div class="row g-0 justify-content-center border rounded">
         <ResolveImageComponent DishDto=@DishDto />
@@ -49,8 +52,15 @@
                 </div>
                 @if (DishDto!.CanEdit)
                 {
-                    <div class="col-1 col-sm-2 px-0">
-                        <button class="btn btn-danger btn-sm" @onclick="() => _openConfirmation = true">
+                    @* Redigera före radera i läsordningen, och neutral kontur mot raderaknappens
+                       röda — den ofarliga handlingen ska inte se ut som den farliga. *@
+                    <div class="col-2 col-sm-2 px-0 d-flex gap-2 justify-content-end">
+                        <button class="btn btn-outline-secondary btn-sm" aria-label="Redigera rätten"
+                            title="Redigera" @onclick="OpenModal">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" aria-label="Radera rätten"
+                            title="Radera" @onclick="() => _openConfirmation = true">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -59,6 +69,11 @@
         </div>
     </div>
 </div>
+@if (_showModal)
+{
+    <DayCardModal Dish="@DishDto" OnCloseEvent="@CloseModal" HandleOnSaveEvent="@HandleOnSave"
+        SaveError="@_saveError" />
+}
 @if (_openConfirmation == true)
 {
     var options = OpenConfirmDialog();
@@ -71,6 +86,8 @@
 {
     private string _nextTime = "Not scheduled";
     private bool _openConfirmation = false;
+    private bool _showModal;
+    private string? _saveError;
 
     [Parameter]
     public DishDto? DishDto { get; set; }
@@ -84,6 +101,10 @@
     /// <summary>Sidan hämtar om listan när en röst ändrats, så snittet stämmer.</summary>
     [Parameter]
     public EventCallback OnVoteChanged { get; set; }
+
+    /// <summary>Samma sak efter en sparad redigering: kortet ska visa de nya värdena.</summary>
+    [Parameter]
+    public EventCallback OnDishUpdated { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -114,6 +135,49 @@
         };
 
         await OnScheduleNextTime.InvokeAsync(eventArgs);
+    }
+
+    private void OpenModal()
+    {
+        _saveError = null;
+        _showModal = true;
+    }
+
+    private void CloseModal(bool show)
+    {
+        _showModal = !show;
+    }
+
+    /// <summary>
+    /// Komponenten sparar själv, som DayCard gör. Modalen stängs bara när det gick bra —
+    /// annars står den kvar med felet i sig och kortet är oförändrat.
+    /// </summary>
+    private async Task HandleOnSave((DishDto dish, bool newDish) data)
+    {
+        _saveError = null;
+        try
+        {
+            await DishService.UpdateDishAsync(data.dish);
+        }
+        catch (ForbiddenException)
+        {
+            _saveError = "Du får bara ändra dina egna rätter.";
+            // Modalen skriver sina fält rakt in i DTO:n innan den sparar, och DTO:n är samma
+            // objekt som kortet renderar. Utan en omhämtning skulle kortet visa ändringar
+            // som aldrig nådde databasen.
+            await OnDishUpdated.InvokeAsync();
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Kunde inte spara rätten {DishId}.", data.dish.DishId);
+            _saveError = "Rätten kunde inte sparas. Ingenting har ändrats — försök igen.";
+            await OnDishUpdated.InvokeAsync();
+            return;
+        }
+
+        _showModal = false;
+        await OnDishUpdated.InvokeAsync();
     }
 
     private async Task DeleteDishAsync()
