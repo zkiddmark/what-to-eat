@@ -76,12 +76,18 @@ namespace WhatToEatApp.Services.Dish
         public async Task<IEnumerable<DishDto>> GetAllDishes(int skip = 0, int take = 10)
         {
             using var db = _dbContextFactory.CreateDbContext();
-            var dishes = await db.Dishes
+            // SQLite kan inte sortera på DateTimeOffset i ORDER BY, så ordningen görs i minnet.
+            // Hela tabellen läses — samma sak som GetTodaysDish redan gör, och datamängden
+            // är i storleksordningen tiotals rätter.
+            var dishes = await db.Dishes.ToListAsync();
+            return dishes
                 .OrderByDescending(x => x.Rating)
+                .ThenByDescending(x => x.When)
+                .ThenBy(x => x.Id)
                 .Skip(skip)
                 .Take(take)
-                .ToListAsync();
-            return dishes.Select(x => x.MapToDishDto()).ToList();
+                .Select(x => x.MapToDishDto())
+                .ToList();
         }
 
         public async Task<int> DishesCount()
