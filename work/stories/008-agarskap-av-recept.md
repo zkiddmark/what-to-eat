@@ -1,6 +1,6 @@
 ---
 story: 008
-status: in-review
+status: done
 issue: 18
 ---
 

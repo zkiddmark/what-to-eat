@@ -1,6 +1,6 @@
 ---
 story: 007
-status: in-review
+status: done
 issue: 17
 ---
 
