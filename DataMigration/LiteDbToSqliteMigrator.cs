@@ -48,6 +48,19 @@ namespace WhatToEatApp.DataMigration
             var storage = lite.GetStorage<string>("wteImages", "wteChunks");
             var files = storage.FindAll().ToList();
 
+            // Bilder som ingen rätt pekar på följer inte med. Referenserna byggs ur samma
+            // dokument som MapDish läser, så mängderna inte kan glida isär. Jämförelsen sker
+            // på parsad Guid — skiftläge eller format ska inte göra en använd bild föräldralös.
+            var referencedImages = dishes
+                .Select(d => OptionalText(d, "ImageId"))
+                .Where(id => Guid.TryParse(id, out _))
+                .Select(id => Guid.Parse(id!))
+                .ToHashSet();
+            var imagesToWrite = files
+                .Where(f => Guid.TryParse(f.Id, out var id) && referencedImages.Contains(id))
+                .ToList();
+            var imagesSkipped = files.Count - imagesToWrite.Count;
+
             using var transaction = db.Database.BeginTransaction();
             var dishesRead = 0;
             var imagesRead = 0;
@@ -61,7 +74,7 @@ namespace WhatToEatApp.DataMigration
                     dishesRead++;
                 }
 
-                foreach (var file in files)
+                foreach (var file in imagesToWrite)
                 {
                     using var ms = new MemoryStream();
                     storage.OpenRead(file.Id).CopyTo(ms);
@@ -86,7 +99,7 @@ namespace WhatToEatApp.DataMigration
             }
 
             Console.WriteLine($"  Rätter:  {dishes.Count} lästa, {db.Dishes.Count()} skrivna");
-            Console.WriteLine($"  Bilder:  {files.Count} lästa, {db.DishImages.Count()} skrivna");
+            Console.WriteLine($"  Bilder:  {files.Count} lästa, {db.DishImages.Count()} skrivna, {imagesSkipped} överhoppade (ingen rätt pekar på dem)");
             Console.WriteLine("  Klart. Originalfilen är orörd.");
             return 0;
         }
