@@ -3,12 +3,19 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 @* <FocusOnNavigate RouteData="@routeData" Selector="h1" /> *@
-                <NotAuthorized>
+                <NotAuthorized Context="authState">
                     <LayoutView Layout="@typeof(MainLayout)">
-                        <p role="alert">
-                            Du måste vara inloggad för att se den här sidan.
-                            <a href="/login">Logga in</a>.
-                        </p>
+                        @if (authState.User.Identity?.IsAuthenticated == true)
+                        {
+                            <p role="alert">Du har inte behörighet att se den här sidan.</p>
+                        }
+                        else
+                        {
+                            <p role="alert">
+                                Du måste vara inloggad för att se den här sidan.
+                                <a href="/login">Logga in</a>.
+                            </p>
+                        }
                     </LayoutView>
                 </NotAuthorized>
             </AuthorizeRouteView>

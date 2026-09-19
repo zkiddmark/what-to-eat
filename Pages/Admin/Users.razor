@@ -1,0 +1,145 @@
+@page "/admin/anvandare"
+@attribute [Authorize(Roles = "admin")]
+@using WhatToEatApp.Services.Auth
+@inject IUserService UserService
+
+<h3 class="text-muted mb-4">Användare</h3>
+
+@if (Loading)
+{
+    <p class="text-muted" aria-live="polite">Hämtar användare…</p>
+}
+else
+{
+    <h5 class="mb-2">Väntar på godkännande (@Pending.Count)</h5>
+    @if (Pending.Count == 0)
+    {
+        <p class="text-muted">Inga konton väntar på godkännande.</p>
+    }
+    else
+    {
+        <ul class="list-group mb-4">
+            @foreach (var user in Pending)
+            {
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <strong>@user.Alias</strong>
+                            <span class="text-muted ms-2">@user.Email</span>
+                            <span class="text-muted ms-2">@user.CreatedAt.ToString("d MMM")</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary" disabled="@(Busy is not null)"
+                                @onclick="() => ApproveAsync(user.Id)">Godkänn</button>
+                            <button class="btn btn-link text-danger" disabled="@(Busy is not null)"
+                                @onclick="() => AskToReject(user)">Avslå</button>
+                        </div>
+                    </div>
+                    @if (Errors.TryGetValue(user.Id, out var error))
+                    {
+                        <div class="text-danger mt-2" role="alert">@error</div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    <h5 class="mb-2">Användare (@Approved.Count)</h5>
+    <ul class="list-group">
+        @foreach (var user in Approved)
+        {
+            <li class="list-group-item d-flex justify-content-between">
+                <span><strong>@user.Alias</strong><span class="text-muted ms-2">@user.Email</span></span>
+                <span class="text-muted">@user.Role</span>
+            </li>
+        }
+    </ul>
+}
+
+@if (PendingRejection is not null)
+{
+    <ConfirmDialogComponent Title="Avslå konto"
+        Question="@($"Avslå {PendingRejection.Alias} ({PendingRejection.Email})? Det går inte att ångra.")"
+        Result="@OnRejectConfirmed" />
+}
+
+@code
+{
+    private bool Loading { get; set; } = true;
+
+    /// <summary>Id:t för den rad vars handling pågår. Låser knapparna medan det är satt.</summary>
+    private Guid? Busy { get; set; }
+
+    private IReadOnlyList<AppUser> Pending { get; set; } = Array.Empty<AppUser>();
+    private IReadOnlyList<AppUser> Approved { get; set; } = Array.Empty<AppUser>();
+    private Dictionary<Guid, string> Errors { get; } = new();
+    private AppUser? PendingRejection { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Loading = true;
+        Pending = await UserService.GetPendingAsync();
+        Approved = await UserService.GetUsersAsync();
+        Loading = false;
+    }
+
+    private async Task ApproveAsync(Guid userId)
+    {
+        await RunAsync(userId, () => UserService.ApproveAsync(userId));
+    }
+
+    private void AskToReject(AppUser user)
+    {
+        PendingRejection = user;
+    }
+
+    private async Task OnRejectConfirmed(bool confirmed)
+    {
+        var user = PendingRejection;
+        PendingRejection = null;
+        if (!confirmed || user is null)
+        {
+            return;
+        }
+        await RunAsync(user.Id, () => UserService.RejectAsync(user.Id));
+    }
+
+    private async Task RunAsync(Guid userId, Func<Task<AdminActionResult>> action)
+    {
+        Busy = userId;
+        Errors.Remove(userId);
+        try
+        {
+            var result = await action();
+            if (result != AdminActionResult.Success)
+            {
+                // Raden står kvar med sitt felmeddelande — ingenting försvinner tyst.
+                Errors[userId] = Describe(result);
+                return;
+            }
+            await LoadAsync();
+        }
+        catch (Exception)
+        {
+            Errors[userId] = "Handlingen kunde inte genomföras. Försök igen.";
+        }
+        finally
+        {
+            Busy = null;
+        }
+    }
+
+    private static string Describe(AdminActionResult result) => result switch
+    {
+        AdminActionResult.NotAuthorized => "Du har inte behörighet att göra det.",
+        AdminActionResult.UserNotFound => "Kontot finns inte längre.",
+        AdminActionResult.CannotActOnSelf => "Du kan inte avslå ditt eget konto.",
+        AdminActionResult.CannotRemoveLastAdmin => "Det måste finnas minst en administratör kvar.",
+        _ => "Handlingen kunde inte genomföras. Försök igen.",
+    };
+}
