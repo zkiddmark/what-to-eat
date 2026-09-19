@@ -1,0 +1,67 @@
+@inject IDishService DishService
+@inject ILogger<MyVoteComponent> Logger
+
+@* Den egna rösten är den enda interaktiva delen av raden. *@
+<div class="d-flex align-items-center gap-2">
+    <small class="text-muted">Din röst:</small>
+    <RatingComponent CurrentRating="@(MyScore ?? 0)" ReadOnlyRating="@Saving"
+        OnRatingChangedEvent="@VoteAsync" />
+    @if (Saving)
+    {
+        <small class="text-muted" aria-live="polite">sparar…</small>
+    }
+</div>
+@if (ErrorMessage is not null)
+{
+    <div class="text-danger mt-1" role="alert">@ErrorMessage</div>
+}
+
+@code
+{
+    [Parameter]
+    public DishDto DishDto { get; set; } = null!;
+
+    /// <summary>Anropas när rösten sparats, så snittet kan hämtas om.</summary>
+    [Parameter]
+    public EventCallback VoteChanged { get; set; }
+
+    private int? MyScore { get; set; }
+    private bool Saving { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        MyScore = DishDto.MyScore;
+    }
+
+    private async Task VoteAsync(int score)
+    {
+        // Dubbelklick ska inte ge två anrop. Det unika indexet skyddar mot en andra rad
+        // även om det ändå skulle hända.
+        if (Saving)
+        {
+            return;
+        }
+
+        var previous = MyScore;
+        MyScore = score;
+        Saving = true;
+        ErrorMessage = null;
+        try
+        {
+            await DishService.SetVoteAsync(DishDto.DishId, score);
+            await VoteChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Kunde inte spara röst på rätt {DishId}.", DishDto.DishId);
+            // Snittet får aldrig visa något som inte sparats — rösten går tillbaka.
+            MyScore = previous;
+            ErrorMessage = "Rösten kunde inte sparas. Försök igen.";
+        }
+        finally
+        {
+            Saving = false;
+        }
+    }
+}

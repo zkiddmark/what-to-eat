@@ -16,6 +16,7 @@ namespace WhatToEatApp.Services.Dish
         Task<int> DishesCount();
         Task<DishDto?> GetTodaysDish(Days day);
         Task<string> GetImageFromDbAsync(string imgId);
+        Task SetVoteAsync(Guid dishId, int score);
     }
 
     /// <summary>Kastas när den inloggade varken äger rätten eller är admin.</summary>
@@ -146,14 +147,18 @@ namespace WhatToEatApp.Services.Dish
             // Hela tabellen läses — samma sak som GetTodaysDish redan gör, och datamängden
             // är i storleksordningen tiotals rätter.
             var dishes = await db.Dishes.ToListAsync();
+            var scores = await LoadScoresAsync(db, current.Id);
             var page = dishes
-                .OrderByDescending(x => x.Rating)
+                // Rätter utan röster sist — annars hamnar alla orörda överst, eftersom en
+                // saknad röst inte är samma sak som ett lågt betyg.
+                .OrderBy(x => !scores.TryGetValue(x.Id, out var s) || s.Average is null)
+                .ThenByDescending(x => scores.TryGetValue(x.Id, out var s) ? s.Average ?? 0 : 0)
                 .ThenByDescending(x => x.When)
                 .ThenBy(x => x.Id)
                 .Skip(skip)
                 .Take(take)
                 .ToList();
-            return await DecorateAsync(db, page, current);
+            return await DecorateAsync(db, page, current, scores);
         }
 
         public async Task<int> DishesCount()
@@ -174,7 +179,8 @@ namespace WhatToEatApp.Services.Dish
             {
                 return null;
             }
-            var dishDto = (await DecorateAsync(db, new List<Entities.Dish> { dish }, current)).Single();
+            var scores = await LoadScoresAsync(db, current.Id);
+            var dishDto = (await DecorateAsync(db, new List<Entities.Dish> { dish }, current, scores)).Single();
             dishDto.When = day.ResolveDayOfWeek();
             return dishDto;
         }
@@ -183,8 +189,65 @@ namespace WhatToEatApp.Services.Dish
         /// Fyller i ägarens alias och om den inloggade får ändra rätten. Aliasen hämtas i en
         /// fråga för hela sidan, inte en per rad.
         /// </summary>
+        /// <summary>
+        /// Snitt, antal röster och den inloggades egen röst, i en fråga för hela tabellen.
+        /// </summary>
+        private static async Task<Dictionary<Guid, (double? Average, int Count, int? Mine)>> LoadScoresAsync(
+            AppDbContext db, Guid userId)
+        {
+            var rows = await db.DishVotes
+                .GroupBy(v => v.DishId)
+                .Select(g => new
+                {
+                    DishId = g.Key,
+                    Average = (double?)g.Average(v => v.Score),
+                    Count = g.Count(),
+                    Mine = g.Where(v => v.UserId == userId).Select(v => (int?)v.Score).FirstOrDefault(),
+                })
+                .ToListAsync();
+
+            return rows.ToDictionary(r => r.DishId, r => (r.Average, r.Count, r.Mine));
+        }
+
+        public async Task SetVoteAsync(Guid dishId, int score)
+        {
+            if (score < 1 || score > 5)
+            {
+                throw new ArgumentOutOfRangeException(nameof(score), "Betyget måste vara mellan 1 och 5.");
+            }
+
+            // Röstning är tillåten på allas recept — bara redigering är ägarens ensak.
+            var current = await GetCurrentUserAsync();
+
+            using var db = _dbContextFactory.CreateDbContext();
+            if (!await db.Dishes.AnyAsync(x => x.Id == dishId))
+            {
+                return;
+            }
+
+            var vote = await db.DishVotes.FirstOrDefaultAsync(x => x.DishId == dishId && x.UserId == current.Id);
+            if (vote is null)
+            {
+                db.DishVotes.Add(new Entities.DishVote
+                {
+                    Id = Guid.NewGuid(),
+                    DishId = dishId,
+                    UserId = current.Id,
+                    Score = score,
+                });
+            }
+            else
+            {
+                vote.Score = score;
+            }
+            await db.SaveChangesAsync();
+        }
+
         private static async Task<List<DishDto>> DecorateAsync(
-            AppDbContext db, List<Entities.Dish> dishes, (Guid Id, bool IsAdmin) current)
+            AppDbContext db,
+            List<Entities.Dish> dishes,
+            (Guid Id, bool IsAdmin) current,
+            Dictionary<Guid, (double? Average, int Count, int? Mine)> scores)
         {
             var ownerIds = dishes.Select(x => x.OwnerId).Distinct().ToList();
             var aliases = await db.Users
@@ -196,6 +259,12 @@ namespace WhatToEatApp.Services.Dish
                 var dto = dish.MapToDishDto();
                 dto.OwnerAlias = aliases.TryGetValue(dish.OwnerId, out var alias) ? alias : string.Empty;
                 dto.CanEdit = current.IsAdmin || dish.OwnerId == current.Id;
+                if (scores.TryGetValue(dish.Id, out var score))
+                {
+                    dto.AverageScore = score.Average;
+                    dto.VoteCount = score.Count;
+                    dto.MyScore = score.Mine;
+                }
                 return dto;
             }).ToList();
         }

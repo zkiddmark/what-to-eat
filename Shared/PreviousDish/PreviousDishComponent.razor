@@ -3,11 +3,12 @@
         <ResolveImageComponent DishDto=@DishDto />
         <div class="card-body">
             <div class="row">
-                <div class="col-sm-12 mb-1">
-                    <RatingComponent CurrentRating="@DishDto!.Rating" ReadOnlyRating="true" />
+                <div class="col-sm-12 mb-1 d-flex justify-content-between align-items-center flex-wrap">
+                    <AverageScoreComponent AverageScore="@DishDto!.AverageScore" VoteCount="@DishDto!.VoteCount" />
+                    <small class="text-muted">av @DishDto!.OwnerAlias</small>
                 </div>
                 <div class="col-sm-12 mb-4">
-                    <small class="text-muted">av @DishDto!.OwnerAlias</small>
+                    <MyVoteComponent DishDto="DishDto!" VoteChanged="@OnVoteChanged" />
                 </div>
                 <div class="row mb-4">
                     <div class="col-sm-8 d-flex align-items-center">
@@ -79,6 +80,10 @@
 
     [Parameter]
     public EventCallback<DishDto> OnDeleteDish { get; set; }
+
+    /// <summary>Sidan hämtar om listan när en röst ändrats, så snittet stämmer.</summary>
+    [Parameter]
+    public EventCallback OnVoteChanged { get; set; }
 
     protected override void OnParametersSet()
     {

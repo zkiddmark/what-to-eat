@@ -14,6 +14,7 @@ namespace WhatToEatApp.Data
         public DbSet<Dish> Dishes => Set<Dish>();
         public DbSet<DishImage> DishImages => Set<DishImage>();
         public DbSet<AppUser> Users => Set<AppUser>();
+        public DbSet<DishVote> DishVotes => Set<DishVote>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +42,17 @@ namespace WhatToEatApp.Data
             modelBuilder.Entity<DishImage>(image =>
             {
                 image.HasKey(x => x.Id);
+            });
+
+            modelBuilder.Entity<DishVote>(vote =>
+            {
+                vote.HasKey(x => x.Id);
+                // Garantin för "en röst per användare och rätt".
+                vote.HasIndex(x => new { x.DishId, x.UserId }).IsUnique();
+                // Kaskad, till skillnad från ägarskapet: en röst utan sin rätt eller sin
+                // användare är meningslös, medan ett recept utan ägare är data man vill behålla.
+                vote.HasOne<Dish>().WithMany().HasForeignKey(x => x.DishId).OnDelete(DeleteBehavior.Cascade);
+                vote.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<AppUser>(user =>

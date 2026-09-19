@@ -14,7 +14,7 @@
                             $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h5>
                     @if (TodaysDish is not null)
                     {
-                        <RatingComponent CurrentRating="@TodaysDish!.Rating" OnRatingChangedEvent="@UpdateRatingAsync" />
+                        <AverageScoreComponent AverageScore="@TodaysDish!.AverageScore" VoteCount="@TodaysDish!.VoteCount" />
                     }
                 </div>
                 <div class="row mb-4">
@@ -36,6 +36,9 @@
                 {
                     <div class="col-sm-12 mb-2">
                         <small class="text-muted">av @TodaysDish.OwnerAlias</small>
+                    </div>
+                    <div class="col-sm-12 mb-2">
+                        <MyVoteComponent DishDto="TodaysDish" VoteChanged="@ReloadDishAsync" />
                     </div>
                 }
                 <div class="col-sm-10">
@@ -128,18 +131,10 @@
         }
     }
 
-    private async Task UpdateRatingAsync(int rating)
+    /// <summary>Hämtar om rätten så att snittet speglar den röst som just sparats.</summary>
+    private async Task ReloadDishAsync()
     {
-        if (TodaysDish is not null)
-        {
-            var previousRating = TodaysDish.Rating;
-            TodaysDish.Rating = rating;
-            await HandleOnSave((TodaysDish, false));
-            if (ErrorMessage is not null)
-            {
-                TodaysDish.Rating = previousRating;
-            }
-        }
+        TodaysDish = await DishService.GetTodaysDish(Day);
     }
 
     private void CloseModal(bool show)
