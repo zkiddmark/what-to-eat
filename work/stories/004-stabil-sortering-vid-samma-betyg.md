@@ -1,6 +1,6 @@
 ---
 story: 004
-status: in-review
+status: done
 issue: 11
 ---
 
@@ -41,3 +41,12 @@ Utanför omfattning: valbar sortering i UI:t, ny sorteringsordning för betyget 
 
 ## Wireframe
 Ingen layoutförändring. Endast radordningen inom en betygsgrupp ändras.
+
+## Verifierat efter merge (2026-09-19, mergad main `8d7b16e`)
+
+`GetAllDishes` sorterar nu `Rating` fallande, `When` fallande, `Id` stigande. Den tredje
+nivån var inte begärd men är rätt: den gör ordningen entydig även för rätter med både samma
+betyg och samma datum, vilket finns i datan.
+
+Kontrollerat mot prod-datan: 3 betygsgrupper har fler än en rätt (störst är 15 rätter med
+betyg 0) och inom varje grupp är datumordningen fallande.

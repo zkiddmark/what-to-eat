@@ -1,6 +1,6 @@
 ---
 story: 003
-status: in-review
+status: done
 issue: 10
 ---
 
@@ -59,3 +59,14 @@ bild i stället för att vara tom.
 De 9 föräldralösa bilderna i produktionsdatan går inte att koppla tillbaka till rätt rätt
 automatiskt — kopplingen har aldrig funnits. Vill du att de får ligga kvar (kostar utrymme,
 syns inte), eller ska de städas bort i en egen story?
+
+## Verifierat efter merge (2026-09-19, mergad main `8d7b16e`)
+
+`AddDishAsync` lägger nu till `newDish` — objektet som fått `ImageId` — i stället för ett nytt
+tomt objekt. Bilden och rätten läggs till i samma `DbContext` och skrivs av ett enda
+`SaveChangesAsync`, så antingen sparas båda eller ingen. Misslyckas uppladdningen kastas
+undantaget innan rätten läggs till, så ingen rätt sparas tyst utan sin bild.
+
+Kvar otestat: klickvägen i webbläsaren. Appen kan inte startas lokalt utan
+`ExcludedSecrets/firebaseConfig.json`, som inte finns i repot. Koden är granskad, men det
+sista steget behöver en körning i en miljö med Firebase-konfiguration.

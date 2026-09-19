@@ -1,6 +1,6 @@
 ---
 story: 005
-status: in-review
+status: done
 issue: 12
 ---
 
@@ -62,3 +62,16 @@ Migrerar WhatToEat.db -> whattoeat.sqlite
 ## Klar när
 - Migreringen körd mot en kopia av prod-backupen med siffrorna ovan.
 - De 15 använda bilderna verifierat identiska (md5) med originalen.
+
+## Verifierat efter merge (2026-09-19, mergad main `8d7b16e`)
+
+Kört mot en kopia av prod-backupen:
+
+```
+  Rätter:  31 lästa, 31 skrivna
+  Bilder:  24 lästa, 15 skrivna, 9 överhoppade (ingen rätt pekar på dem)
+```
+
+Samtliga 15 bilder som en rätt faktiskt pekar på finns i SQLite och är md5-identiska med
+originalen. Ingen använd bild hoppades över, och ingen föräldralös bild följde med.
+Källfilens checksumma oförändrad.
