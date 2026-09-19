@@ -82,7 +82,8 @@ måste tåla, och det är här den seedade testfilen ljög:
 | `Title`, `Rating`, `When` | 0 | 0 | alltid satta i denna datamängd |
 
 Dessutom: 9 av 24 bilder är föräldralösa (ingen rätt pekar på dem) och alla bild-id:n är
-giltiga Guid:er. Föräldralösa bilder ska följa med — de finns i LiteDB idag.
+giltiga Guid:er. Föräldralösa bilder följde med i denna story — **ändrat i story 005**, där de
+i stället hoppas över vid migreringen.
 
 `Notes` ska mappas till `string.Empty` när nyckeln saknas eller är null, vilket är samma
 värde som `Entities/Dish` redan har som default och samma tomma fält som användaren ser idag.
