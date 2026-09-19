@@ -1,6 +1,6 @@
 ---
 story: 012
-status: draft
+status: planned
 issue: 28
 ---
 
