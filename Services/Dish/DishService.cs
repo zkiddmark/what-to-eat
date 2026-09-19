@@ -45,8 +45,11 @@ namespace WhatToEatApp.Services.Dish
             // Get dish from db.
             var dishToUpdate = await db.Dishes.FirstAsync(x => x.Id == dishDto.DishId);
 
-            // Image has changed, remove the old one.
-            if (dishToUpdate.ImageId is not null && dishToUpdate.ImageId != dishDto.ImageId)
+            // Image has changed, remove the old one. En ny uppladdad fil ersätter den gamla
+            // bilden även när id:t är oförändrat — modalen nollställer bara ImageId när
+            // användaren aktivt tar bort bilden, inte när hen väljer en ny fil.
+            if (dishToUpdate.ImageId is not null
+                && (dishDto.Image is not null || dishToUpdate.ImageId != dishDto.ImageId))
             {
                 await DeleteImage(dishToUpdate.ImageId);
             }

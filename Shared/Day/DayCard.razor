@@ -1,4 +1,5 @@
 @inject IDishService DishService;
+@inject ILogger<DayCard> Logger;
 
 <div class="card border-0 w-100" style="max-width: 520px;">
     <div class="row g-0 justify-content-center border rounded">
@@ -82,6 +83,7 @@
 
     public async Task HandleOnSave((DishDto dish, bool newDish) data)
     {
+        SaveFailed = false;
         try
         {
             switch (data.newDish)
@@ -94,8 +96,9 @@
                     break;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Kunde inte spara rätten för {Day}.", Day);
             SaveFailed = true;
             return;
         }
@@ -117,8 +120,13 @@
     {
         if (TodaysDish is not null)
         {
-            TodaysDish!.Rating = rating;
+            var previousRating = TodaysDish.Rating;
+            TodaysDish.Rating = rating;
             await HandleOnSave((TodaysDish, false));
+            if (SaveFailed)
+            {
+                TodaysDish.Rating = previousRating;
+            }
         }
     }
 
@@ -130,7 +138,6 @@
 
     private void OpenModal()
     {
-        SaveFailed = false;
         ShowModal = true;
         StateHasChanged();
     }
