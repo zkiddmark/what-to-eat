@@ -21,7 +21,8 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
-builder.Services.AddTransient<IDishService, DishService>();
+// Scoped: tjänsten bär nu ett användarberoende och ska leva lika länge som kretsen.
+builder.Services.AddScoped<IDishService, DishService>();
 builder.Services.AddSingleton<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddScoped<IUserService, UserService>();
 
@@ -51,6 +52,19 @@ using (var scope = app.Services.CreateScope())
 {
     var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
     using var db = await factory.CreateDbContextAsync();
+
+    // Ägarskapsmigreringen i story 008 pekar rätternas OwnerId mot admin-kontot, som i sin
+    // tur behöver användartabellen. Körs allt i ett svep på en databas med befintliga rätter
+    // finns ingen admin att peka på och främmande nyckeln fäller migreringen. Därför:
+    // migrera fram till användartabellen, seeda admin, och kör sedan resten.
+    var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+    var usersMigration = pending.FirstOrDefault(m => m.EndsWith("AddAppUser", StringComparison.Ordinal));
+    if (usersMigration is not null)
+    {
+        await db.Database.MigrateAsync(usersMigration);
+        await UserSeeder.SeedAsync(app.Services);
+    }
+
     await db.Database.MigrateAsync();
 }
 

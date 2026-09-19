@@ -9,6 +9,7 @@ namespace WhatToEatApp.Entities
         }
         public Dish(
             Guid id,
+            Guid ownerId,
             string title,
             string notes,
             string? imgUrl,
@@ -19,6 +20,7 @@ namespace WhatToEatApp.Entities
             string? imageId)
         {
             Id = id == Guid.Empty ? Guid.NewGuid() : id;
+            OwnerId = ownerId;
             Title = title;
             Notes = notes;
             ImgUrl = imgUrl;
@@ -30,6 +32,9 @@ namespace WhatToEatApp.Entities
         }
 
         public Guid Id { get; set; }
+
+        /// <summary>Sätts av servern utifrån inloggad användare, aldrig av något klienten skickar.</summary>
+        public Guid OwnerId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string? ImgUrl { get; set; }
@@ -39,6 +44,7 @@ namespace WhatToEatApp.Entities
         public DateTimeOffset When { get; set; }
         public string? ImageId { get; set; }
 
+        /// <summary>Ägaren byts aldrig via en uppdatering och kopieras därför inte här.</summary>
         public void UpdateDish(Dish updatedDish)
         {
             Title = updatedDish.Title;
