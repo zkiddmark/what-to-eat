@@ -33,7 +33,9 @@ namespace WhatToEatApp.Data
             {
                 logger.LogWarning(
                     "Ingen användare finns och {Setting} är inte satt — inget administratörskonto skapades. " +
-                    "Sätt variabeln och starta om för att kunna logga in.", PasswordSetting);
+                    "Sätt variabeln ({Min}-{Max} tecken) i docker-compose-wte.yml och starta om containern " +
+                    "för att kunna logga in.",
+                    PasswordSetting, UserService.MinimumPasswordLength, UserService.MaximumPasswordLength);
                 return;
             }
 
@@ -42,7 +44,8 @@ namespace WhatToEatApp.Data
             {
                 logger.LogWarning(
                     "{Setting} bryter mot appens egen lösenordspolicy ({Min}-{Max} tecken) — " +
-                    "inget administratörskonto skapades.",
+                    "inget administratörskonto skapades. Välj ett lösenord inom längdgränserna i " +
+                    "docker-compose-wte.yml och starta om containern.",
                     PasswordSetting, UserService.MinimumPasswordLength, UserService.MaximumPasswordLength);
                 return;
             }
