@@ -27,15 +27,15 @@ namespace WhatToEatApp.Services.Dish
 
         public async Task AddDishAsync(DishDto dishDto)
         {
+            using var db = _dbContextFactory.CreateDbContext();
+
             var newDish = dishDto.MapToNewDish();
             if (dishDto.Image is not null)
             {
-                var imageId = await AddImageFromFileAsync(dishDto.Image, dishDto.Title);
-                newDish.ImageId = imageId;
+                newDish.ImageId = await AddImageFromFileAsync(db, dishDto.Image, dishDto.Title);
             }
 
-            using var db = _dbContextFactory.CreateDbContext();
-            db.Dishes.Add(dishDto.MapToNewDish());
+            db.Dishes.Add(newDish);
             await db.SaveChangesAsync();
         }
 
@@ -55,8 +55,7 @@ namespace WhatToEatApp.Services.Dish
 
             if (dishDto.Image is not null)
             {
-                var imageId = await AddImageFromFileAsync(dishDto.Image, dishDto.Title);
-                dishToUpdate.ImageId = imageId;
+                dishToUpdate.ImageId = await AddImageFromFileAsync(db, dishDto.Image, dishDto.Title);
             }
             await db.SaveChangesAsync();
         }
@@ -128,9 +127,12 @@ namespace WhatToEatApp.Services.Dish
             return Convert.ToBase64String(content);
         }
 
-        private async Task<string> AddImageFromFileAsync(IBrowserFile file, string title)
+        /// <summary>
+        /// Lägger bilden i anroparens context utan att spara — bild och rätt skrivs i samma
+        /// SaveChanges, så en misslyckad sparning inte lämnar en föräldralös bild efter sig.
+        /// </summary>
+        private async Task<string> AddImageFromFileAsync(AppDbContext db, IBrowserFile file, string title)
         {
-            using var db = _dbContextFactory.CreateDbContext();
             using var ms = new MemoryStream();
             await file.OpenReadStream().CopyToAsync(ms);
             var newId = Guid.NewGuid();
@@ -140,7 +142,6 @@ namespace WhatToEatApp.Services.Dish
                 FileName = CreateSafeImageTitle(title),
                 Content = ms.ToArray()
             });
-            await db.SaveChangesAsync();
             return newId.ToString();
         }
 

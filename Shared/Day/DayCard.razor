@@ -36,6 +36,12 @@
                 </div>
                 <IngredientsComponent DishDto="@TodaysDish"/>
             </div>
+            @if (SaveFailed)
+            {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    Rätten kunde inte sparas. Ingenting har ändrats — försök igen.
+                </div>
+            }
             <div class="row mt-3">
                 <div class="col-xs-12 col-lg-10 mt-2">
                     <button class="btn btn-secondary w-100" @onclick="@OpenModal">@(TodaysDish != null ? "Update the dish" :
@@ -67,6 +73,8 @@
 
     private bool ShowModal { get; set; }
 
+    private bool SaveFailed { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         TodaysDish = await DishService.GetTodaysDish(Day);
@@ -74,15 +82,22 @@
 
     public async Task HandleOnSave((DishDto dish, bool newDish) data)
     {
-
-        switch (data.newDish)
+        try
         {
-            case true:
-                await DishService.AddDishAsync(data.dish);
-                break;
-            default:
-                await DishService.UpdateDishAsync(data.dish);
-                break;
+            switch (data.newDish)
+            {
+                case true:
+                    await DishService.AddDishAsync(data.dish);
+                    break;
+                default:
+                    await DishService.UpdateDishAsync(data.dish);
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            SaveFailed = true;
+            return;
         }
 
         TodaysDish = await DishService.GetTodaysDish(Day);
@@ -115,6 +130,7 @@
 
     private void OpenModal()
     {
+        SaveFailed = false;
         ShowModal = true;
         StateHasChanged();
     }
