@@ -78,14 +78,31 @@ namespace WhatToEatApp.DataMigration
             using var transaction = db.Database.BeginTransaction();
             var dishesRead = 0;
             var imagesRead = 0;
+            var votesRead = 0;
             var currentDish = "(ingen)";
             try
             {
                 foreach (var doc in dishes)
                 {
                     currentDish = doc.TryGetValue("Title", out var title) && title.IsString ? title.AsString : "(namnlös)";
-                    db.Dishes.Add(MapDish(doc, ownerId));
+                    var dish = MapDish(doc, ownerId);
+                    db.Dishes.Add(dish);
                     dishesRead++;
+
+                    // Betyget i LiteDB är ett tal på rätten. Det blir ägarens röst — utom
+                    // noll, som betyder "aldrig satt" och därför inte ska bli en röst.
+                    var score = Required(doc, "Rating").AsInt32;
+                    if (score > 0)
+                    {
+                        db.DishVotes.Add(new DishVote
+                        {
+                            Id = Guid.NewGuid(),
+                            DishId = dish.Id,
+                            UserId = ownerId,
+                            Score = score,
+                        });
+                        votesRead++;
+                    }
                 }
 
                 foreach (var file in imagesToWrite)
@@ -113,6 +130,7 @@ namespace WhatToEatApp.DataMigration
             }
 
             Console.WriteLine($"  Rätter:  {dishes.Count} lästa, {db.Dishes.Count()} skrivna");
+            Console.WriteLine($"  Röster:  {votesRead} skapade ur satta betyg, {dishes.Count - votesRead} rätter utan röst");
             Console.WriteLine($"  Bilder:  {files.Count} lästa, {db.DishImages.Count()} skrivna, {imagesSkipped} överhoppade (ingen rätt pekar på dem)");
             Console.WriteLine("  Klart. Originalfilen är orörd.");
             return 0;
@@ -148,7 +166,6 @@ namespace WhatToEatApp.DataMigration
                 OptionalText(doc, "ImgUrl"),
                 OptionalText(doc, "RecipeUrl"),
                 ingredients,
-                Required(doc, "Rating").AsInt32,
                 ToLocalOffset(Required(doc, "When").AsDateTime),
                 OptionalText(doc, "ImageId"));
         }

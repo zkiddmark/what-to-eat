@@ -15,7 +15,6 @@ namespace WhatToEatApp.Entities
             string? imgUrl,
             string? recipeUrl,
             IList<string> ingredients,
-            int rating,
             DateTimeOffset when,
             string? imageId)
         {
@@ -26,7 +25,6 @@ namespace WhatToEatApp.Entities
             ImgUrl = imgUrl;
             RecipeUrl = recipeUrl;
             Ingredients = ingredients;
-            Rating = rating;
             When = when;
             ImageId = imageId;
         }
@@ -40,7 +38,6 @@ namespace WhatToEatApp.Entities
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; }
-        public int Rating { get; set; }
         public DateTimeOffset When { get; set; }
         public string? ImageId { get; set; }
 
@@ -52,7 +49,6 @@ namespace WhatToEatApp.Entities
             ImgUrl = updatedDish.ImgUrl;
             RecipeUrl = updatedDish.RecipeUrl;
             Ingredients = updatedDish.Ingredients;
-            Rating = updatedDish.Rating;
             ImageId = updatedDish.ImageId;
             When = updatedDish.When;
         }

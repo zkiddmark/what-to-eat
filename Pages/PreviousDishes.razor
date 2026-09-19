@@ -10,7 +10,7 @@
             {
                 <div class="d-flex justify-content-center col-md-6 mb-5">
                     <PreviousDishComponent DishDto=@dishDto OnScheduleNextTime="(e) => OnScheduleNextTimeHandler(e)"
-                    OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" />
+                    OnDeleteDish="(dish) => OnDeleteDishHandler(dish)" OnVoteChanged="@ReloadCurrentPageAsync" />
                 </div>
             }
         </div>
@@ -34,6 +34,13 @@
     {
         Dishes.AddRange(await DishService.GetAllDishes(skip, take));
         DishesCount = await DishService.DishesCount();
+    }
+
+    /// <summary>Hämtar om sidan så att snittet speglar den röst som just sparats.</summary>
+    private async Task ReloadCurrentPageAsync()
+    {
+        Dishes.Clear();
+        await LoadDishesAsync(_skip, _take);
     }
 
     public async Task OnPageChanged(PaginatorEventArgs args)

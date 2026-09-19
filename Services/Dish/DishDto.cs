@@ -10,8 +10,14 @@ namespace WhatToEatApp.Services.Dish
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; } = new List<string>();
-        public int Rating { get; set; }
         public DateTimeOffset When { get; set; }
+
+        /// <summary>Snittet av rösterna. Null betyder att ingen röstat än — inte betyget noll.</summary>
+        public double? AverageScore { get; set; }
+        public int VoteCount { get; set; }
+
+        /// <summary>Den inloggade användarens egen röst, null om hen inte röstat.</summary>
+        public int? MyScore { get; set; }
         public string? ImageId { get; set; }
         public IBrowserFile? Image { get; set; }
 
@@ -28,7 +34,7 @@ namespace WhatToEatApp.Services.Dish
         public static Entities.Dish MapToNewDish(this DishDto dishDto, Guid ownerId)
         {
             return new Entities.Dish(dishDto.DishId, ownerId, dishDto.Title, dishDto.Notes, dishDto.ImgUrl,
-            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.Rating, dishDto.When, dishDto.ImageId);
+            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.When, dishDto.ImageId);
         }
 
         public static DishDto MapToDishDto(this Entities.Dish dish)
@@ -42,7 +48,6 @@ namespace WhatToEatApp.Services.Dish
                 Ingredients = dish.Ingredients,
                 Notes = dish.Notes,
                 RecipeUrl = dish.RecipeUrl,
-                Rating = dish.Rating,
                 When = dish.When
             };
         }
