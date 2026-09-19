@@ -1,6 +1,6 @@
 ---
 story: 006
-status: in-progress
+status: done
 issue: 16
 ---
 
@@ -131,3 +131,24 @@ Efter registrering ersätts formuläret av ett lugnt bekräftelsemeddelande i sa
 - Inga referenser till Firebase kvar i koden, konfigurationen eller `wwwroot`.
 - Appen startar lokalt utan `ExcludedSecrets`.
 - De 31 befintliga recepten är oförändrade och syns för en inloggad användare.
+
+## Verifierat efter merge (2026-09-19, mergad main `b243de7`)
+
+Kört mot appen, inte bara läst koden — vilket blev möjligt först nu när Firebase är borta:
+
+- Utloggad `GET /` → 302 till `/login`. Kontrollen sitter i pipelinen.
+- Inloggning med rätt uppgifter → 302, därefter `GET /` → 200.
+- Fel lösenord och okänd e-post ger **exakt samma** meddelande: "Fel e-post eller lösenord."
+- Sessionscookien sätts med `secure; samesite=lax; httponly`.
+- Sex felaktiga försök sätter `LockedUntil`; därefter nekas även rätt lösenord.
+- Registrering skapar konto med status `Pending` och visar "Kontot är skapat och väntar på
+  godkännande". Inloggningsförsök med det kontot säger det rent ut.
+- Utloggning ligger medvetet bara på POST — en GET som muterar tillstånd går att utlösa från
+  en annan sajt. Efter POST-utloggning nekas en **sparad kopia** av den gamla cookien.
+- Inga referenser till Firebase kvar. Appen startar utan `ExcludedSecrets`.
+- Admin-seedningen läser lösenordet ur `ADMIN_INITIAL_PASSWORD` och skapar hellre inget konto
+  alls än använder ett standardlösenord.
+
+Not: `Microsoft.AspNetCore.Identity` används för `IPasswordHasher<AppUser>`, men **inget nytt
+paket** har lagts till — typen ligger i det delade ramverket. Det är alltså ramverkets
+beprövade PBKDF2-hashning utan att hela Identity dras in.
