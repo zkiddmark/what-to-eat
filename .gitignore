@@ -455,3 +455,6 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Rollfil per worktree — ska inte delas mellan roller
+CLAUDE.md
