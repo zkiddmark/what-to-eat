@@ -22,6 +22,14 @@ namespace WhatToEatApp.Services.Auth
         PasswordLengthInvalid,
     }
 
+    public enum ChangePasswordResult
+    {
+        Success,
+        InvalidCurrentPassword,
+        PasswordLengthInvalid,
+        UserNotFound,
+    }
+
     public enum AdminActionResult
     {
         Success,
@@ -40,7 +48,9 @@ namespace WhatToEatApp.Services.Auth
         Task<AdminActionResult> RejectAsync(Guid userId);
         Task<(LoginResult Result, AppUser? User)> ValidateCredentialsAsync(string email, string password);
         Task<AppUser?> FindBySecurityStampAsync(Guid userId, Guid securityStamp);
+        Task<AppUser?> GetByIdAsync(Guid userId);
         Task RotateSecurityStampAsync(Guid userId);
+        Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
     }
 
     public class UserService : IUserService
@@ -267,6 +277,48 @@ namespace WhatToEatApp.Services.Auth
             using var db = _dbContextFactory.CreateDbContext();
             return await db.Users.FirstOrDefaultAsync(x =>
                 x.Id == userId && x.SecurityStamp == securityStamp && x.Status == AccountStatus.Approved);
+        }
+
+        /// <summary>
+        /// Byter lösenord på en användare som redan är inloggad. Id:t kommer från cookien,
+        /// aldrig från formuläret. Det nuvarande lösenordet verifieras med
+        /// <see cref="ValidateCredentialsAsync"/> så att inloggningens spärrlogik gäller även
+        /// här — annars vore kontosidan en väg runt låset.
+        /// </summary>
+        public async Task<ChangePasswordResult> ChangePasswordAsync(
+            Guid userId, string currentPassword, string newPassword)
+        {
+            if (newPassword.Length < MinimumPasswordLength || newPassword.Length > MaximumPasswordLength)
+            {
+                return ChangePasswordResult.PasswordLengthInvalid;
+            }
+
+            using var db = _dbContextFactory.CreateDbContext();
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user is null)
+            {
+                return ChangePasswordResult.UserNotFound;
+            }
+
+            // Spärrat konto, fel lösenord eller ett konto som inte längre är godkänt ger
+            // samma svar: att det var fel. Inget annat avslöjas.
+            var (result, validated) = await ValidateCredentialsAsync(user.Email, currentPassword);
+            if (result != LoginResult.Success || validated is null || validated.Id != userId)
+            {
+                return ChangePasswordResult.InvalidCurrentPassword;
+            }
+
+            // Hash och stämpel skrivs i samma SaveChanges: ett halvt byte får inte bli kvar.
+            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+            user.SecurityStamp = Guid.NewGuid();
+            await db.SaveChangesAsync();
+            return ChangePasswordResult.Success;
+        }
+
+        public async Task<AppUser?> GetByIdAsync(Guid userId)
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            return await db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         }
 
         public async Task RotateSecurityStampAsync(Guid userId)
