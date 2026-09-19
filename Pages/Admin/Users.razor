@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "admin")]
 @using WhatToEatApp.Services.Auth
 @inject IUserService UserService
+@inject IJSRuntime JS
 
 <h3 class="text-muted mb-4">Användare</h3>
 
@@ -48,12 +49,68 @@ else
     <ul class="list-group">
         @foreach (var user in Approved)
         {
-            <li class="list-group-item d-flex justify-content-between">
-                <span><strong>@user.Alias</strong><span class="text-muted ms-2">@user.Email</span></span>
-                <span class="text-muted">@user.Role</span>
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span><strong>@user.Alias</strong><span class="text-muted ms-2">@user.Email</span></span>
+                    <span class="d-flex align-items-center gap-3">
+                        <span class="text-muted">@user.Role</span>
+                        @if (user.Id == CurrentUserId)
+                        {
+                            <span class="text-muted">(du)</span>
+                        }
+                        else if (user.TemporaryPasswordExpiresAt is not null)
+                        {
+                            <span class="text-muted">väntar på byte</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-link" disabled="@(Busy is not null)"
+                                @onclick="() => AskToSetTemporaryPassword(user)">Sätt tillfälligt lösenord</button>
+                        }
+                    </span>
+                </div>
+                @if (Errors.TryGetValue(user.Id, out var approvedError))
+                {
+                    <div class="text-danger mt-2" role="alert">@approvedError</div>
+                }
             </li>
         }
     </ul>
+}
+
+@if (PendingTemporaryPassword is not null)
+{
+    <ConfirmDialogComponent Title="Sätt tillfälligt lösenord"
+        Question="@($"Sätt ett tillfälligt lösenord för {PendingTemporaryPassword.Alias} ({PendingTemporaryPassword.Email})? " +
+            "Användaren loggas ut överallt och måste välja ett eget lösenord vid nästa inloggning.")"
+        Result="@OnTemporaryPasswordConfirmed" />
+}
+
+@if (GeneratedFor is not null && GeneratedPassword is not null)
+{
+    <div class="modal modal-backdrop bg-dark bg-opacity-75" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tillfälligt lösenord för @GeneratedFor.Alias</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <code class="fs-4">@GeneratedPassword</code>
+                        <button class="btn btn-secondary" @onclick="CopyAsync">@CopyLabel</button>
+                    </div>
+                    <p class="mb-0">
+                        Visas bara nu. Lämna över det till @GeneratedFor.Alias direkt.
+                        @GeneratedFor.Alias måste välja ett eget lösenord vid inloggning.
+                        Gäller i 24 timmar.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="DismissGeneratedAsync">Klart</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 @if (PendingRejection is not null)
@@ -74,9 +131,91 @@ else
     private IReadOnlyList<AppUser> Approved { get; set; } = Array.Empty<AppUser>();
     private Dictionary<Guid, string> Errors { get; } = new();
     private AppUser? PendingRejection { get; set; }
+    private AppUser? PendingTemporaryPassword { get; set; }
+
+    /// <summary>Klartexten lever bara i den här variabeln och bara tills rutan stängs.</summary>
+    private string? GeneratedPassword { get; set; }
+    private AppUser? GeneratedFor { get; set; }
+    private string CopyLabel { get; set; } = "Kopiera";
+
+    /// <summary>Den egna raden får ingen knapp — admin byter sitt lösenord på /konto.</summary>
+    private Guid? CurrentUserId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthenticationState is not null)
+        {
+            var state = await AuthenticationState;
+            CurrentUserId = AuthClaims.GetUserId(state.User);
+        }
+        await LoadAsync();
+    }
+
+    private void AskToSetTemporaryPassword(AppUser user)
+    {
+        PendingTemporaryPassword = user;
+    }
+
+    private async Task OnTemporaryPasswordConfirmed(bool confirmed)
+    {
+        var user = PendingTemporaryPassword;
+        PendingTemporaryPassword = null;
+        if (!confirmed || user is null)
+        {
+            return;
+        }
+
+        Busy = user.Id;
+        Errors.Remove(user.Id);
+        try
+        {
+            var (result, password) = await UserService.SetTemporaryPasswordAsync(user.Id);
+            if (result != AdminActionResult.Success || password is null)
+            {
+                Errors[user.Id] = Describe(result);
+                return;
+            }
+
+            GeneratedFor = user;
+            GeneratedPassword = password;
+            CopyLabel = "Kopiera";
+        }
+        catch (Exception)
+        {
+            Errors[user.Id] = "Handlingen kunde inte genomföras. Försök igen.";
+        }
+        finally
+        {
+            Busy = null;
+        }
+    }
+
+    private async Task CopyAsync()
+    {
+        if (GeneratedPassword is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("copyToClipboard", GeneratedPassword);
+            CopyLabel = "Kopierat";
+        }
+        catch (Exception)
+        {
+            // Urklippet kan nekas av webbläsaren. Lösenordet står kvar på skärmen att läsa.
+            CopyLabel = "Kunde inte kopiera";
+        }
+    }
+
+    private async Task DismissGeneratedAsync()
+    {
+        GeneratedPassword = null;
+        GeneratedFor = null;
         await LoadAsync();
     }
 
@@ -138,7 +277,7 @@ else
     {
         AdminActionResult.NotAuthorized => "Du har inte behörighet att göra det.",
         AdminActionResult.UserNotFound => "Kontot finns inte längre.",
-        AdminActionResult.CannotActOnSelf => "Du kan inte avslå ditt eget konto.",
+        AdminActionResult.CannotActOnSelf => "Du kan inte göra det på ditt eget konto.",
         AdminActionResult.CannotRemoveLastAdmin => "Det måste finnas minst en administratör kvar.",
         _ => "Handlingen kunde inte genomföras. Försök igen.",
     };

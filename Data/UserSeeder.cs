@@ -63,8 +63,15 @@ namespace WhatToEatApp.Data
             };
             admin.PasswordHash = hasher.HashPassword(admin, password);
 
-            db.Users.Add(admin);
-            await db.SaveChangesAsync();
+            // Raden skrivs med rå SQL och en uttrycklig kolumnlista, inte via modellen.
+            // Seedningen kör mitt i migreringskedjan — direkt efter AddAppUser och före
+            // ägarmigreringen — och tabellen saknar då de kolumner senare migreringar lägger
+            // till. En EF-insert skulle nämna dem och falla. Listan nedan är AddAppUser:s
+            // egna kolumner; senare kolumner är nullbara och lämnas åt sitt förval.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO Users (Id, Alias, Email, PasswordHash, Status, Role, SecurityStamp, CreatedAt, FailedAttempts, LockedUntil)
+                VALUES ({admin.Id}, {admin.Alias}, {admin.Email}, {admin.PasswordHash}, {(int)admin.Status}, {admin.Role}, {admin.SecurityStamp}, {admin.CreatedAt}, {admin.FailedAttempts}, NULL)
+                """);
             logger.LogInformation("Administratörskonto {Email} skapat.", AdminEmail);
         }
     }
