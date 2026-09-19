@@ -54,7 +54,7 @@ namespace WhatToEatApp.Pages
 
             var (result, user) = await _userService.ValidateCredentialsAsync(Input.Email, Input.Password);
 
-            if (result != LoginResult.Success || user is null)
+            if (result is not (LoginResult.Success or LoginResult.MustChangePassword) || user is null)
             {
                 // Lösenordet följer aldrig med tillbaka till formuläret; e-posten gör det.
                 Input.Password = string.Empty;
@@ -64,6 +64,8 @@ namespace WhatToEatApp.Pages
                         "Ditt konto väntar på godkännande. Du kan logga in när det har godkänts.",
                     LoginResult.Rejected =>
                         "Ditt konto har nekats åtkomst. Kontakta den som administrerar appen.",
+                    LoginResult.TemporaryPasswordExpired =>
+                        "Det tillfälliga lösenordet har gått ut. Be en administratör sätta ett nytt.",
                     _ => "Fel e-post eller lösenord.",
                 };
                 return Page();
@@ -71,6 +73,13 @@ namespace WhatToEatApp.Pages
 
             var principal = AuthClaims.CreatePrincipal(user, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            // Tvingat byte går före allt annat, returnUrl inräknat: användaren ska inte se
+            // rätterna först.
+            if (result == LoginResult.MustChangePassword)
+            {
+                return Redirect("~/byt-losenord");
+            }
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {

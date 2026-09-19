@@ -13,6 +13,8 @@ if (args.Length > 0 && args[0] == "--migrate-litedb")
     return LiteDbToSqliteMigrator.Run(args);
 }
 
+const string ForcedPasswordChangePath = "/byt-losenord";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -74,36 +76,44 @@ using (var scope = app.Services.CreateScope())
     // tur behöver användartabellen. Körs allt i ett svep på en databas med befintliga rätter
     // finns ingen admin att peka på och främmande nyckeln fäller migreringen. Därför:
     // migrera fram till användartabellen, seeda admin, och kör sedan resten.
+    //
+    // Den delade migreringen görs bara när den behövs. Seedningen skriver med den aktuella
+    // modellen, och halvvägs genom kedjan saknar tabellen de kolumner senare migreringar
+    // lägger till — en tom databas ska därför migreras hela vägen först och seedas sedan.
     var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
-    var usersMigration = pending.FirstOrDefault(m => m.EndsWith("AddAppUser", StringComparison.Ordinal));
-    if (usersMigration is not null)
-    {
-        await db.Database.MigrateAsync(usersMigration);
-    }
+    var applied = (await db.Database.GetAppliedMigrationsAsync()).ToList();
 
-    // Seedningen hänger på att användartabellen finns — inte på att migreringen råkade vara
-    // pending just den här starten. Skedde första starten utan ADMIN_INITIAL_PASSWORD ligger
-    // AddAppUser redan applicerad men tabellen är tom, och då måste seedningen nås ändå.
-    var applied = await db.Database.GetAppliedMigrationsAsync();
-    if (applied.Any(m => m.EndsWith("AddAppUser", StringComparison.Ordinal)))
+    // Dishes finns först efter Initial; dessförinnan finns inga rätter att äga.
+    var dishCount = applied.Any(m => m.EndsWith("Initial", StringComparison.Ordinal))
+        ? await CountDishesAsync(db)
+        : 0;
+
+    if (pending.Any(m => m.EndsWith("AddDishOwner", StringComparison.Ordinal)) && dishCount > 0)
     {
+        var usersMigration = pending.FirstOrDefault(m => m.EndsWith("AddAppUser", StringComparison.Ordinal));
+        if (usersMigration is not null)
+        {
+            await db.Database.MigrateAsync(usersMigration);
+        }
+
+        // Seedningen hänger på att användartabellen finns — inte på att migreringen råkade
+        // vara pending just den här starten. Skedde första starten utan
+        // ADMIN_INITIAL_PASSWORD ligger AddAppUser redan applicerad men tabellen är tom.
         await UserSeeder.SeedAsync(app.Services);
-    }
 
-    // Grind: utan admin fäller ägarmigreringen främmande nyckeln på befintliga rätter. Stanna
-    // på en läsbar rad i stället för en SQLite-krasch ur EF — databasen är orörd.
-    if (pending.Any(m => m.EndsWith("AddDishOwner", StringComparison.Ordinal))
-        && !await db.Users.AnyAsync()
-        && await CountDishesAsync(db) > 0)
-    {
-        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup").LogError(
-            "Inget administratörskonto finns och det behövs innan rätternas ägare kan sättas. " +
-            "Sätt {Setting} ({Min}-{Max} tecken) i docker-compose-wte.yml och starta om containern. " +
-            "Databasen är orörd.",
-            UserSeeder.PasswordSetting,
-            UserService.MinimumPasswordLength,
-            UserService.MaximumPasswordLength);
-        return 1;
+        // Grind: utan admin fäller ägarmigreringen främmande nyckeln på befintliga rätter.
+        // Stanna på en läsbar rad i stället för en SQLite-krasch ur EF — databasen är orörd.
+        if (!await db.Users.AnyAsync())
+        {
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup").LogError(
+                "Inget administratörskonto finns och det behövs innan rätternas ägare kan sättas. " +
+                "Sätt {Setting} ({Min}-{Max} tecken) i docker-compose-wte.yml och starta om containern. " +
+                "Databasen är orörd.",
+                UserSeeder.PasswordSetting,
+                UserService.MinimumPasswordLength,
+                UserService.MaximumPasswordLength);
+            return 1;
+        }
     }
 
     await db.Database.MigrateAsync();
@@ -126,6 +136,27 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication();
+
+// Ett konto på tillfälligt lösenord får inte nå något annat än sitt eget byte. Kontrollen
+// ligger här, inte i vyerna: /_blazor ingår i det som spärras, så ingen krets kan startas
+// och inget dataändrande anrop nå fram.
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var isExempt = path.StartsWithSegments(ForcedPasswordChangePath)
+        || path.StartsWithSegments("/logout");
+
+    if (!isExempt
+        && context.User.Identity?.IsAuthenticated == true
+        && AuthClaims.RequiresPasswordChange(context.User))
+    {
+        context.Response.Redirect(ForcedPasswordChangePath);
+        return;
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapRazorPages();

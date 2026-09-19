@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,21 @@ namespace WhatToEatApp.Services.Auth
         InvalidCredentials,
         PendingApproval,
         Rejected,
+
+        /// <summary>Rätt lösenord, men det är tillfälligt: logga in och tvinga fram ett byte.</summary>
+        MustChangePassword,
+
+        /// <summary>Det tillfälliga lösenordet har passerat sin utgångstid.</summary>
+        TemporaryPasswordExpired,
+    }
+
+    public enum ForcedChangeResult
+    {
+        Success,
+        NoTemporaryPassword,
+        Expired,
+        PasswordLengthInvalid,
+        UserNotFound,
     }
 
     public enum RegisterResult
@@ -51,6 +67,8 @@ namespace WhatToEatApp.Services.Auth
         Task<AppUser?> GetByIdAsync(Guid userId);
         Task RotateSecurityStampAsync(Guid userId);
         Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+        Task<(AdminActionResult Result, string? Password)> SetTemporaryPasswordAsync(Guid userId);
+        Task<ForcedChangeResult> CompleteForcedChangeAsync(Guid userId, string newPassword);
     }
 
     public class UserService : IUserService
@@ -167,12 +185,24 @@ namespace WhatToEatApp.Services.Auth
 
             // Statusen kontrolleras efter lösenordet. Annars blir väntlägesbeskedet i sig
             // ett sätt att kartlägga vilka konton som finns.
-            return user.Status switch
+            if (user.Status != AccountStatus.Approved)
             {
-                AccountStatus.Approved => (LoginResult.Success, user),
-                AccountStatus.Rejected => (LoginResult.Rejected, null),
-                _ => (LoginResult.PendingApproval, null),
-            };
+                return user.Status == AccountStatus.Rejected
+                    ? (LoginResult.Rejected, null)
+                    : (LoginResult.PendingApproval, null);
+            }
+
+            // Ett tillfälligt lösenord prövas mot sin utgångstid när det används — inget
+            // bakgrundsjobb städar. Går det ut förblir kontot spärrat tills admin sätter ett nytt.
+            if (user.TemporaryPasswordExpiresAt is { } expiresAt)
+            {
+                return expiresAt <= DateTimeOffset.UtcNow
+                    ? (LoginResult.TemporaryPasswordExpired, null)
+                    // Användaren loggas in — annars går hen inte att identifiera på bytessidan.
+                    : (LoginResult.MustChangePassword, user);
+            }
+
+            return (LoginResult.Success, user);
         }
 
         /// <summary>
@@ -313,6 +343,99 @@ namespace WhatToEatApp.Services.Auth
             user.SecurityStamp = Guid.NewGuid();
             await db.SaveChangesAsync();
             return ChangePasswordResult.Success;
+        }
+
+        /// <summary>
+        /// Tecken som inte går att förväxla när lösenordet läses upp i telefon: inga 0/O,
+        /// 1/l/I. Grupperingen i fyror är av samma skäl.
+        /// </summary>
+        private const string TemporaryPasswordAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+        private const int TemporaryPasswordGroups = 4;
+        private const int TemporaryPasswordGroupLength = 4;
+        private static readonly TimeSpan TemporaryPasswordLifetime = TimeSpan.FromHours(24);
+
+        private static string GenerateTemporaryPassword()
+        {
+            var groups = Enumerable
+                .Range(0, TemporaryPasswordGroups)
+                .Select(_ => RandomNumberGenerator.GetString(
+                    TemporaryPasswordAlphabet, TemporaryPasswordGroupLength));
+            return string.Join('-', groups);
+        }
+
+        /// <summary>
+        /// Sätter ett tillfälligt lösenord på en annan användare och returnerar klartexten.
+        /// Den skrivs aldrig till databas eller logg — anroparen visar den en gång och
+        /// slänger den.
+        /// </summary>
+        public async Task<(AdminActionResult Result, string? Password)> SetTemporaryPasswordAsync(Guid userId)
+        {
+            var admin = await GetCurrentAdminAsync();
+            if (admin is null)
+            {
+                return (AdminActionResult.NotAuthorized, null);
+            }
+
+            if (userId == admin.Id)
+            {
+                // Admin byter sitt eget lösenord via /konto.
+                return (AdminActionResult.CannotActOnSelf, null);
+            }
+
+            using var db = _dbContextFactory.CreateDbContext();
+            var target = await db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (target is null || target.Status != AccountStatus.Approved)
+            {
+                return (AdminActionResult.UserNotFound, null);
+            }
+
+            var password = GenerateTemporaryPassword();
+            target.PasswordHash = _passwordHasher.HashPassword(target, password);
+            target.TemporaryPasswordExpiresAt = DateTimeOffset.UtcNow.Add(TemporaryPasswordLifetime);
+            // Ny stämpel: användarens pågående sessioner slutar gälla omedelbart. Räknaren
+            // nollas — annars kunde ett gammalt lås hindra hen från att använda det nya.
+            target.SecurityStamp = Guid.NewGuid();
+            target.FailedAttempts = 0;
+            target.LockedUntil = null;
+            await db.SaveChangesAsync();
+
+            return (AdminActionResult.Success, password);
+        }
+
+        /// <summary>
+        /// Avslutar det tvingade bytet. Tillståndet rensas i samma SaveChanges som det nya
+        /// lösenordet sparas — ett halvt byte får inte lämna kontot utan väg in.
+        /// </summary>
+        public async Task<ForcedChangeResult> CompleteForcedChangeAsync(Guid userId, string newPassword)
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user is null)
+            {
+                return ForcedChangeResult.UserNotFound;
+            }
+
+            if (user.TemporaryPasswordExpiresAt is not { } expiresAt)
+            {
+                return ForcedChangeResult.NoTemporaryPassword;
+            }
+
+            if (expiresAt <= DateTimeOffset.UtcNow)
+            {
+                return ForcedChangeResult.Expired;
+            }
+
+            if (newPassword.Length < MinimumPasswordLength || newPassword.Length > MaximumPasswordLength)
+            {
+                return ForcedChangeResult.PasswordLengthInvalid;
+            }
+
+            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+            user.TemporaryPasswordExpiresAt = null;
+            user.SecurityStamp = Guid.NewGuid();
+            await db.SaveChangesAsync();
+            return ForcedChangeResult.Success;
         }
 
         public async Task<AppUser?> GetByIdAsync(Guid userId)
