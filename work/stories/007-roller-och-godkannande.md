@@ -1,6 +1,6 @@
 ---
 story: 007
-status: planned
+status: in-progress
 issue: 17
 ---
 
