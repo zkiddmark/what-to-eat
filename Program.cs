@@ -48,6 +48,23 @@ var app = builder.Build();
 // Schemat måste följa med appversionen: story 006 lägger till Users-tabellen, och den
 // befintliga databasen skapades innan den fanns. Detta är schemamigrering, inte
 // LiteDB-importen — den är fortsatt ett manuellt, medvetet kommando.
+// Rätterna räknas med rå SQL: OwnerId-kolumnen finns inte förrän AddDishOwner körts, så en
+// EF-fråga mot Dishes skulle falla på en kolumn som ännu inte är till.
+static async Task<long> CountDishesAsync(AppDbContext db)
+{
+    await db.Database.OpenConnectionAsync();
+    try
+    {
+        await using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM Dishes";
+        return Convert.ToInt64(await command.ExecuteScalarAsync());
+    }
+    finally
+    {
+        await db.Database.CloseConnectionAsync();
+    }
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
@@ -62,7 +79,31 @@ using (var scope = app.Services.CreateScope())
     if (usersMigration is not null)
     {
         await db.Database.MigrateAsync(usersMigration);
+    }
+
+    // Seedningen hänger på att användartabellen finns — inte på att migreringen råkade vara
+    // pending just den här starten. Skedde första starten utan ADMIN_INITIAL_PASSWORD ligger
+    // AddAppUser redan applicerad men tabellen är tom, och då måste seedningen nås ändå.
+    var applied = await db.Database.GetAppliedMigrationsAsync();
+    if (applied.Any(m => m.EndsWith("AddAppUser", StringComparison.Ordinal)))
+    {
         await UserSeeder.SeedAsync(app.Services);
+    }
+
+    // Grind: utan admin fäller ägarmigreringen främmande nyckeln på befintliga rätter. Stanna
+    // på en läsbar rad i stället för en SQLite-krasch ur EF — databasen är orörd.
+    if (pending.Any(m => m.EndsWith("AddDishOwner", StringComparison.Ordinal))
+        && !await db.Users.AnyAsync()
+        && await CountDishesAsync(db) > 0)
+    {
+        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup").LogError(
+            "Inget administratörskonto finns och det behövs innan rätternas ägare kan sättas. " +
+            "Sätt {Setting} ({Min}-{Max} tecken) i docker-compose-wte.yml och starta om containern. " +
+            "Databasen är orörd.",
+            UserSeeder.PasswordSetting,
+            UserService.MinimumPasswordLength,
+            UserService.MaximumPasswordLength);
+        return 1;
     }
 
     await db.Database.MigrateAsync();
