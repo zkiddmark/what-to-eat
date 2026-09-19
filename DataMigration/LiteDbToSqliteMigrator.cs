@@ -2,6 +2,7 @@ using LiteDB;
 using Microsoft.EntityFrameworkCore;
 using WhatToEatApp.Data;
 using WhatToEatApp.Entities;
+using WhatToEatApp.Services.Auth;
 
 namespace WhatToEatApp.DataMigration
 {
@@ -37,6 +38,19 @@ namespace WhatToEatApp.DataMigration
             using var db = new AppDbContext(options);
             db.Database.Migrate();
 
+            // Rätterna behöver en ägare, och ägarskapet sätts av servern. Admin-kontot skapas
+            // när appen startar; utan det finns ingen att peka på.
+            var owner = db.Users.FirstOrDefault(x => x.Email == UserSeeder.AdminEmail);
+            if (owner is null)
+            {
+                Console.Error.WriteLine(
+                    $"Ingen användare med e-post {UserSeeder.AdminEmail} finns i måldatabasen. " +
+                    "Starta appen en gång med ADMIN_INITIAL_PASSWORD satt så att kontot skapas, " +
+                    "och kör sedan migreringen igen. Inget har skrivits.");
+                return 1;
+            }
+            var ownerId = owner.Id;
+
             if (db.Dishes.Any() || db.DishImages.Any())
             {
                 Console.Error.WriteLine($"Måldatabasen '{target}' innehåller redan data. Migreringen är en engångskörning — kör mot en tom fil. Inget har skrivits.");
@@ -64,14 +78,31 @@ namespace WhatToEatApp.DataMigration
             using var transaction = db.Database.BeginTransaction();
             var dishesRead = 0;
             var imagesRead = 0;
+            var votesRead = 0;
             var currentDish = "(ingen)";
             try
             {
                 foreach (var doc in dishes)
                 {
                     currentDish = doc.TryGetValue("Title", out var title) && title.IsString ? title.AsString : "(namnlös)";
-                    db.Dishes.Add(MapDish(doc));
+                    var dish = MapDish(doc, ownerId);
+                    db.Dishes.Add(dish);
                     dishesRead++;
+
+                    // Betyget i LiteDB är ett tal på rätten. Det blir ägarens röst — utom
+                    // noll, som betyder "aldrig satt" och därför inte ska bli en röst.
+                    var score = Required(doc, "Rating").AsInt32;
+                    if (score > 0)
+                    {
+                        db.DishVotes.Add(new DishVote
+                        {
+                            Id = Guid.NewGuid(),
+                            DishId = dish.Id,
+                            UserId = ownerId,
+                            Score = score,
+                        });
+                        votesRead++;
+                    }
                 }
 
                 foreach (var file in imagesToWrite)
@@ -99,6 +130,7 @@ namespace WhatToEatApp.DataMigration
             }
 
             Console.WriteLine($"  Rätter:  {dishes.Count} lästa, {db.Dishes.Count()} skrivna");
+            Console.WriteLine($"  Röster:  {votesRead} skapade ur satta betyg, {dishes.Count - votesRead} rätter utan röst");
             Console.WriteLine($"  Bilder:  {files.Count} lästa, {db.DishImages.Count()} skrivna, {imagesSkipped} överhoppade (ingen rätt pekar på dem)");
             Console.WriteLine("  Klart. Originalfilen är orörd.");
             return 0;
@@ -120,7 +152,7 @@ namespace WhatToEatApp.DataMigration
             return new DateTimeOffset(utc).ToLocalTime();
         }
 
-        private static Dish MapDish(BsonDocument doc)
+        private static Dish MapDish(BsonDocument doc, Guid ownerId)
         {
             var ingredients = doc["Ingredients"].IsArray
                 ? doc["Ingredients"].AsArray.Select(x => x.AsString).ToList()
@@ -128,12 +160,12 @@ namespace WhatToEatApp.DataMigration
 
             return new Dish(
                 Guid.NewGuid(),
+                ownerId,
                 Required(doc, "Title").AsString,
                 OptionalText(doc, "Notes") ?? string.Empty,
                 OptionalText(doc, "ImgUrl"),
                 OptionalText(doc, "RecipeUrl"),
                 ingredients,
-                Required(doc, "Rating").AsInt32,
                 ToLocalOffset(Required(doc, "When").AsDateTime),
                 OptionalText(doc, "ImageId"));
         }

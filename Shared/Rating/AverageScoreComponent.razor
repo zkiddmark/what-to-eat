@@ -1,0 +1,27 @@
+@using System.Globalization
+
+@* Snittet: lugnt och läsbart. Ingen röst alls är inte samma sak som noll stjärnor. *@
+@if (AverageScore is null)
+{
+    <span class="text-muted">Inga röster än</span>
+}
+else
+{
+    <span class="d-inline-flex align-items-center gap-2">
+        <RatingComponent CurrentRating="@((int)Math.Round(AverageScore.Value))" ReadOnlyRating="true" />
+        <span class="fw-semibold">@AverageScore.Value.ToString("0.0", SwedishCulture)</span>
+        <small class="text-muted">(@VoteCount @(VoteCount == 1 ? "röst" : "röster"))</small>
+    </span>
+}
+
+@code
+{
+    /// <summary>Appen har ingen kulturinställning; decimalkommat sätts explicit.</summary>
+    private static readonly CultureInfo SwedishCulture = CultureInfo.GetCultureInfo("sv-SE");
+
+    [Parameter]
+    public double? AverageScore { get; set; }
+
+    [Parameter]
+    public int VoteCount { get; set; }
+}

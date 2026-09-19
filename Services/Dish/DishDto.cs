@@ -10,18 +10,31 @@ namespace WhatToEatApp.Services.Dish
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; } = new List<string>();
-        public int Rating { get; set; }
         public DateTimeOffset When { get; set; }
+
+        /// <summary>Snittet av rösterna. Null betyder att ingen röstat än — inte betyget noll.</summary>
+        public double? AverageScore { get; set; }
+        public int VoteCount { get; set; }
+
+        /// <summary>Den inloggade användarens egen röst, null om hen inte röstat.</summary>
+        public int? MyScore { get; set; }
         public string? ImageId { get; set; }
         public IBrowserFile? Image { get; set; }
+
+        /// <summary>Endast för visning. Det finns medvetet inget skrivbart OwnerId på DTO:n —
+        /// ägaren sätts av servern och kan därför inte styras av klienten.</summary>
+        public string OwnerAlias { get; set; } = string.Empty;
+
+        /// <summary>Beräknas av servern: får den inloggade användaren ändra den här rätten?</summary>
+        public bool CanEdit { get; set; }
     }
 
     public static class DishDtoExtensions
     {
-        public static Entities.Dish MapToNewDish(this DishDto dishDto)
+        public static Entities.Dish MapToNewDish(this DishDto dishDto, Guid ownerId)
         {
-            return new Entities.Dish(dishDto.DishId, dishDto.Title, dishDto.Notes, dishDto.ImgUrl,
-            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.Rating, dishDto.When, dishDto.ImageId);
+            return new Entities.Dish(dishDto.DishId, ownerId, dishDto.Title, dishDto.Notes, dishDto.ImgUrl,
+            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.When, dishDto.ImageId);
         }
 
         public static DishDto MapToDishDto(this Entities.Dish dish)
@@ -35,7 +48,6 @@ namespace WhatToEatApp.Services.Dish
                 Ingredients = dish.Ingredients,
                 Notes = dish.Notes,
                 RecipeUrl = dish.RecipeUrl,
-                Rating = dish.Rating,
                 When = dish.When
             };
         }

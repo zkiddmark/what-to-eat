@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WhatToEatApp.Data;
 
@@ -10,9 +11,11 @@ using WhatToEatApp.Data;
 namespace WhatToEatApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260919112417_AddDishOwner")]
+    partial class AddDishOwner
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
@@ -85,6 +88,9 @@ namespace WhatToEatApp.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Rating")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("RecipeUrl")
                         .HasColumnType("TEXT");
 
@@ -121,52 +127,12 @@ namespace WhatToEatApp.Migrations
                     b.ToTable("DishImages");
                 });
 
-            modelBuilder.Entity("WhatToEatApp.Entities.DishVote", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("DishId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Score")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("DishId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("DishVotes");
-                });
-
             modelBuilder.Entity("WhatToEatApp.Entities.Dish", b =>
                 {
                     b.HasOne("WhatToEatApp.Entities.AppUser", null)
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("WhatToEatApp.Entities.DishVote", b =>
-                {
-                    b.HasOne("WhatToEatApp.Entities.Dish", null)
-                        .WithMany()
-                        .HasForeignKey("DishId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WhatToEatApp.Entities.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

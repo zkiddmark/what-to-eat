@@ -20,6 +20,13 @@
                     </button>
                 </NavLink>
             </li>
+            <AuthorizeView Roles="admin">
+                <li class="nav-item">
+                    <NavLink class="nav-link" style="color: var(--bs-secondary);" href="admin/anvandare">
+                        <button class="btn btn-outline-secondary">Användare</button>
+                    </NavLink>
+                </li>
+            </AuthorizeView>
             <AuthorizeView>
                 <li class="nav-item d-flex align-items-center">
                     <span class="text-muted">@context.User.Identity?.Name</span>
