@@ -1,5 +1,5 @@
-@inject IFirebaseService FirebaseService;
 @inject NavigationManager Navigation;
+@inject IJSRuntime JS;
 
 <nav class="navbar navbar-expand bg-light mb-3">
     <div class="container-fluid" style="max-width: 520px;">
@@ -20,8 +20,13 @@
                     </button>
                 </NavLink>
             </li>
+            <AuthorizeView>
+                <li class="nav-item d-flex align-items-center">
+                    <span class="text-muted">@context.User.Identity?.Name</span>
+                </li>
+            </AuthorizeView>
             <li class="nav-item d-flex align-items-center">
-                <button class="btn btn-outline-secondary" @onclick="async () => await SignOut()">
+                <button class="btn btn-outline-secondary" @onclick="SignOut">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
                         <use href="/svg/box-arrow-right.svg#box-arrow-right"></use>
                     </svg>
@@ -36,8 +41,10 @@
 {
     private async Task SignOut()
     {
-        await FirebaseService.SignOut();
-        Navigation.NavigateTo("/login");
+        // Cookien kan inte tas bort från en Blazor-krets, och utloggningen ligger bara
+        // på POST. Knappen postar därför formuläret med antiforgery-token som ligger
+        // i _Layout.
+        await JS.InvokeVoidAsync("submitLogout");
     }
 
     private void ToPreviousDishes()

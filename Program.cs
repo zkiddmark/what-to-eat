@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WhatToEatApp.Data;
 using WhatToEatApp.DataMigration;
+using WhatToEatApp.Entities;
+using WhatToEatApp.Services.Auth;
 using WhatToEatApp.Services.Dish;
-using WhatToEatApp.Auth;
-using Microsoft.AspNetCore.Components.Authorization;
 
 if (args.Length > 0 && args[0] == "--migrate-litedb")
 {
@@ -11,24 +14,47 @@ if (args.Length > 0 && args[0] == "--migrate-litedb")
 }
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("./ExcludedSecrets/firebaseConfig.json");
 
 // Add services to the container.
-builder.Services.Configure<FirebaseOptions>(
-    builder.Configuration.GetSection("firebaseOptions")
-);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
 builder.Services.AddTransient<IDishService, DishService>();
-builder.Services.AddScoped<IFirebaseService, FirebaseService>();
-builder.Services.AddScoped<FirebaseAuthStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>((provider) => provider.GetRequiredService<FirebaseAuthStateProvider>());
+builder.Services.AddSingleton<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/login";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        // Lax, inte Strict: annars följer cookien inte med vid redirect tillbaka från
+        // inloggningssidan och användaren landar utloggad.
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+        options.Events.OnValidatePrincipal = CookieSecurityStampValidator.ValidateAsync;
+    });
 
 var app = builder.Build();
 
+// Schemat måste följa med appversionen: story 006 lägger till Users-tabellen, och den
+// befintliga databasen skapades innan den fanns. Detta är schemamigrering, inte
+// LiteDB-importen — den är fortsatt ett manuellt, medvetet kommando.
+using (var scope = app.Services.CreateScope())
+{
+    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    using var db = await factory.CreateDbContextAsync();
+    await db.Database.MigrateAsync();
+}
+
+await UserSeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -44,8 +70,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages();
 app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+// Kontrollen sitter i pipelinen, inte i vyn: utan detta serveras _Host till vem som helst
+// och först Blazor-komponenten avgör vad som visas.
+app.MapFallbackToPage("/_Host").RequireAuthorization();
 
 app.Run();
 
