@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WhatToEatApp.Data;
@@ -21,9 +22,22 @@ namespace WhatToEatApp.Services.Auth
         PasswordLengthInvalid,
     }
 
+    public enum AdminActionResult
+    {
+        Success,
+        NotAuthorized,
+        UserNotFound,
+        CannotActOnSelf,
+        CannotRemoveLastAdmin,
+    }
+
     public interface IUserService
     {
         Task<RegisterResult> RegisterAsync(string alias, string email, string password);
+        Task<IReadOnlyList<AppUser>> GetPendingAsync();
+        Task<IReadOnlyList<AppUser>> GetUsersAsync();
+        Task<AdminActionResult> ApproveAsync(Guid userId);
+        Task<AdminActionResult> RejectAsync(Guid userId);
         Task<(LoginResult Result, AppUser? User)> ValidateCredentialsAsync(string email, string password);
         Task<AppUser?> FindBySecurityStampAsync(Guid userId, Guid securityStamp);
         Task RotateSecurityStampAsync(Guid userId);
@@ -38,8 +52,12 @@ namespace WhatToEatApp.Services.Auth
         private const int MaxFailedAttempts = 5;
         private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
+        public const string AdminRole = "admin";
+        public const string UserRole = "user";
+
         private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
         private readonly IPasswordHasher<AppUser> _passwordHasher;
+        private readonly AuthenticationStateProvider _authenticationStateProvider;
 
         /// <summary>
         /// Hash att verifiera mot när e-posten inte finns, så att svarstiden blir densamma
@@ -48,10 +66,14 @@ namespace WhatToEatApp.Services.Auth
         /// </summary>
         private readonly string _dummyHash;
 
-        public UserService(IDbContextFactory<AppDbContext> dbContextFactory, IPasswordHasher<AppUser> passwordHasher)
+        public UserService(
+            IDbContextFactory<AppDbContext> dbContextFactory,
+            IPasswordHasher<AppUser> passwordHasher,
+            AuthenticationStateProvider authenticationStateProvider)
         {
             _dbContextFactory = dbContextFactory;
             _passwordHasher = passwordHasher;
+            _authenticationStateProvider = authenticationStateProvider;
             _dummyHash = _passwordHasher.HashPassword(new AppUser(), "no user with this address exists");
         }
 
@@ -77,7 +99,7 @@ namespace WhatToEatApp.Services.Auth
                 Alias = alias.Trim(),
                 Email = normalized,
                 Status = AccountStatus.Pending,
-                Role = "user",
+                Role = UserRole,
                 SecurityStamp = Guid.NewGuid(),
                 CreatedAt = DateTimeOffset.UtcNow,
             };
@@ -141,6 +163,103 @@ namespace WhatToEatApp.Services.Auth
                 AccountStatus.Rejected => (LoginResult.Rejected, null),
                 _ => (LoginResult.PendingApproval, null),
             };
+        }
+
+        /// <summary>
+        /// Den inloggade användaren hämtas alltid härifrån, aldrig ur en parameter. Rollen
+        /// skickas därmed aldrig med från anroparen och kan inte hittas på.
+        /// </summary>
+        private async Task<AppUser?> GetCurrentAdminAsync()
+        {
+            var state = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = AuthClaims.GetUserId(state.User);
+            if (userId is null)
+            {
+                return null;
+            }
+
+            using var db = _dbContextFactory.CreateDbContext();
+            var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId.Value);
+            if (user is null || user.Status != AccountStatus.Approved || user.Role != AdminRole)
+            {
+                return null;
+            }
+            return user;
+        }
+
+        public async Task<IReadOnlyList<AppUser>> GetPendingAsync()
+        {
+            if (await GetCurrentAdminAsync() is null)
+            {
+                return Array.Empty<AppUser>();
+            }
+
+            // SQLite kan inte sortera på DateTimeOffset i ORDER BY — samma begränsning som
+            // GetAllDishes stötte på i story 004. Sorteringen görs därför i minnet.
+            using var db = _dbContextFactory.CreateDbContext();
+            var pending = await db.Users
+                .Where(x => x.Status == AccountStatus.Pending)
+                .ToListAsync();
+            return pending.OrderBy(x => x.CreatedAt).ToList();
+        }
+
+        public async Task<IReadOnlyList<AppUser>> GetUsersAsync()
+        {
+            if (await GetCurrentAdminAsync() is null)
+            {
+                return Array.Empty<AppUser>();
+            }
+
+            using var db = _dbContextFactory.CreateDbContext();
+            return await db.Users
+                .Where(x => x.Status == AccountStatus.Approved)
+                .OrderBy(x => x.Alias)
+                .ToListAsync();
+        }
+
+        public async Task<AdminActionResult> ApproveAsync(Guid userId)
+            => await SetStatusAsync(userId, AccountStatus.Approved);
+
+        public async Task<AdminActionResult> RejectAsync(Guid userId)
+            => await SetStatusAsync(userId, AccountStatus.Rejected);
+
+        private async Task<AdminActionResult> SetStatusAsync(Guid userId, AccountStatus status)
+        {
+            var admin = await GetCurrentAdminAsync();
+            if (admin is null)
+            {
+                return AdminActionResult.NotAuthorized;
+            }
+
+            using var db = _dbContextFactory.CreateDbContext();
+            var target = await db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (target is null)
+            {
+                return AdminActionResult.UserNotFound;
+            }
+
+            if (status == AccountStatus.Rejected)
+            {
+                // Ingen ska kunna låsa ut sig själv, och sista adminen måste bli kvar.
+                if (target.Id == admin.Id)
+                {
+                    return AdminActionResult.CannotActOnSelf;
+                }
+
+                var remainingAdmins = await db.Users.CountAsync(x =>
+                    x.Role == AdminRole && x.Status == AccountStatus.Approved && x.Id != target.Id);
+                if (target.Role == AdminRole && remainingAdmins == 0)
+                {
+                    return AdminActionResult.CannotRemoveLastAdmin;
+                }
+
+                // Ett avslag ska slå igenom direkt, även om kontot har en giltig cookie.
+                target.SecurityStamp = Guid.NewGuid();
+            }
+
+            target.Status = status;
+            await db.SaveChangesAsync();
+            return AdminActionResult.Success;
         }
 
         public async Task<AppUser?> FindBySecurityStampAsync(Guid userId, Guid securityStamp)
