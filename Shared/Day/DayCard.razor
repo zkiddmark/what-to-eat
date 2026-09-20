@@ -46,10 +46,6 @@
                 </div>
                 <IngredientsComponent DishDto="@TodaysDish"/>
             </div>
-            @if (ErrorMessage is not null)
-            {
-                <div class="alert alert-danger mt-3 mb-0" role="alert">@ErrorMessage</div>
-            }
             <div class="row mt-3">
                 @if (TodaysDish is null || TodaysDish.CanEdit)
                 {
@@ -72,7 +68,8 @@
 </div>
 @if (ShowModal == true)
 {
-    <DayCardModal Dish="@TodaysDish" Day="@Day" OnCloseEvent="@CloseModal" HandleOnSaveEvent="@HandleOnSave" />
+    <DayCardModal Dish="@TodaysDish" Day="@Day" OnCloseEvent="@CloseModal" HandleOnSaveEvent="@HandleOnSave"
+        SaveError="@ErrorMessage" />
 }
 
 @code
@@ -109,16 +106,22 @@
         catch (ForbiddenException)
         {
             ErrorMessage = "Du får bara ändra dina egna rätter.";
+            // Modalen har redan skrivit sina fält in i DTO:n. Hämta om rätten, annars visar
+            // kortet bakom modalen ändringar som aldrig sparades.
+            TodaysDish = await DishService.GetTodaysDish(Day);
             return;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Kunde inte spara rätten för {Day}.", Day);
             ErrorMessage = "Rätten kunde inte sparas. Ingenting har ändrats — försök igen.";
+            TodaysDish = await DishService.GetTodaysDish(Day);
             return;
         }
 
         TodaysDish = await DishService.GetTodaysDish(Day);
+        // Modalen stänger inte sig själv längre — den stängs här, och bara när det gick bra.
+        ShowModal = false;
     }
 
     private async Task RemoveTodaysDish()
@@ -145,6 +148,7 @@
 
     private void OpenModal()
     {
+        ErrorMessage = null;
         ShowModal = true;
         StateHasChanged();
     }

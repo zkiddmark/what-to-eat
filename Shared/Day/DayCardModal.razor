@@ -8,6 +8,10 @@
           @onclick="() => OnCloseEvent.InvokeAsync(true)"></button>
       </div>
       <div class="modal-body">
+        @if (SaveError is not null)
+        {
+          <div class="alert alert-danger" role="alert">@SaveError</div>
+        }
         <div class="input-group ">
           <span class="input-group-text col-4 col-sm-3 text-wrap">Name of the dish</span>
           <input class="form-control col-8 col-sm-9" type="text" @bind="TitleInput" />
@@ -40,7 +44,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" @onclick="OnCloseHandler">Close</button>
-        <button type="button" class="btn btn-primary" @onclick="HandleOnSave">Save changes</button>
+        <button type="button" class="btn btn-primary" disabled="@_saving" @onclick="HandleOnSave">
+          @(_saving ? "Ett ögonblick…" : "Save changes")
+        </button>
       </div>
     </div>
   </div>
@@ -59,6 +65,13 @@
 
   [Parameter]
   public EventCallback<bool> OnCloseEvent { get; set; }
+
+  /// <summary>Sätts av föräldern när sparningen nekats. Felet hör hemma där handlingen gjordes.</summary>
+  [Parameter]
+  public string? SaveError { get; set; }
+
+  /// <summary>Hindrar dubbelklick på "Save changes" medan sparningen pågår.</summary>
+  private bool _saving;
 
   private string TitleInput { get; set; } = string.Empty;
   private string NotesTextArea { get; set; } = string.Empty;
@@ -100,7 +113,24 @@
     IngredientList = Dish?.Ingredients.Select(x => x).ToList() ?? new List<string>();
     await OnCloseEvent.InvokeAsync(true);
   }
+  /// <summary>
+  /// Modalen stänger inte sig själv. Föräldern äger sparningen och stänger bara när den
+  /// lyckades — annars står modalen kvar med felet i sig.
+  /// </summary>
   private async Task HandleOnSave()
+  {
+    _saving = true;
+    try
+    {
+      await SaveAsync();
+    }
+    finally
+    {
+      _saving = false;
+    }
+  }
+
+  private async Task SaveAsync()
   {
     if (Dish == null)
     {
@@ -127,6 +157,5 @@
       Dish.ImageId = ImageId;
       await HandleOnSaveEvent.InvokeAsync((Dish, false));
     }
-    await OnCloseEvent.InvokeAsync(true);
   }
 }
