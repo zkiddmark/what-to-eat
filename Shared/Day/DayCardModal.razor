@@ -13,23 +13,23 @@
           <div class="alert alert-danger" role="alert">@SaveError</div>
         }
         <div class="input-group ">
-          <span class="input-group-text col-4 col-sm-3 text-wrap">Name of the dish</span>
+          <span class="input-group-text col-4 col-sm-3 text-wrap">Rättens namn</span>
           <input class="form-control col-8 col-sm-9" type="text" @bind="TitleInput" />
         </div>
         <div class="list-group mt-3">
           <AddIngredientsComponent IngredientList="IngredientList" OnAddIngredientEvent="OnAddIngredientHandler" />
         </div>
         <div class="input-group mt-3">
-          <span class="input-group-text col-4 col-sm-3">Notes</span>
-          <textarea class="form-control col-8 col-sm-9" placeholder="Write some steps or include an url"
+          <span class="input-group-text col-4 col-sm-3">Anteckningar</span>
+          <textarea class="form-control col-8 col-sm-9" placeholder="Skriv några steg eller klistra in en länk"
             @bind="NotesTextArea"></textarea>
         </div>
         <div class="input-group my-3">
-          <span class="input-group-text text-wrap col-4 col-sm-3">Url to the recipe (for lazy ppl)</span>
+          <span class="input-group-text text-wrap col-4 col-sm-3">Länk till receptet</span>
           <input type="text" class="form-control col-8 col-sm-9" @bind="RecipeUrlInput">
         </div>
         <div class="input-group my-3">
-          <span class="input-group-text text-wrap col-4 col-sm-3">Url to a tasty image</span>
+          <span class="input-group-text text-wrap col-4 col-sm-3">Länk till en bild</span>
           <input type="text" class="form-control col-8 col-sm-9" @bind="ImgUrlInput">
         </div>
         <div class="input-group my-3">
@@ -37,15 +37,15 @@
           @if (ImageId is not null || UploadedImage is not null)
           {
             <button class="btn btn-danger rounded w-100" @onclick="() => ImageId = null">
-              Delete image
+              Ta bort bilden
             </button>
           }
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" @onclick="OnCloseHandler">Close</button>
+        <button type="button" class="btn btn-secondary" @onclick="OnCloseHandler">Avbryt</button>
         <button type="button" class="btn btn-primary" disabled="@_saving" @onclick="HandleOnSave">
-          @(_saving ? "Ett ögonblick…" : "Save changes")
+          @(_saving ? "Ett ögonblick…" : "Spara")
         </button>
       </div>
     </div>
@@ -70,7 +70,7 @@
   [Parameter]
   public string? SaveError { get; set; }
 
-  /// <summary>Hindrar dubbelklick på "Save changes" medan sparningen pågår.</summary>
+  /// <summary>Hindrar dubbelklick på sparaknappen medan sparningen pågår.</summary>
   private bool _saving;
 
   private string TitleInput { get; set; } = string.Empty;

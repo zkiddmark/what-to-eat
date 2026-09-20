@@ -10,7 +10,7 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-sm-12 d-flex">
-                    <h2 class="card-title mb-4">@Day.ToString() <span class="fs-6 text">@(TodaysDish != null ?
+                    <h2 class="card-title mb-4">@Day.ToSwedish() <span class="fs-6 text">@(TodaysDish != null ?
                             $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h2>
                     @if (TodaysDish is not null)
                     {
@@ -19,7 +19,7 @@
                 </div>
                 <div class="row mb-4">
                     <div class="col-sm-8 d-flex align-items-center">
-                        <h3 class="card-subtitle">@(TodaysDish?.Title ?? "No dish, go ahead and plan one!")
+                        <h3 class="card-subtitle">@(TodaysDish?.Title ?? "Ingen rätt planerad än")
                         </h3>
                     </div>
                     @if (!string.IsNullOrEmpty(TodaysDish?.RecipeUrl))
@@ -50,8 +50,8 @@
                 @if (TodaysDish is null || TodaysDish.CanEdit)
                 {
                     <div class="col-xs-12 col-lg-10 mt-2">
-                        <button class="btn btn-primary w-100" @onclick="@OpenModal">@(TodaysDish != null ? "Update the dish" :
-                            "Add a dish")</button>
+                        <button class="btn btn-primary w-100" @onclick="@OpenModal">@(TodaysDish != null ? "Ändra rätten" :
+                            "Lägg till en rätt")</button>
                     </div>
                 }
                 @if (TodaysDish is not null && TodaysDish.CanEdit)
