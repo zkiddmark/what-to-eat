@@ -33,7 +33,7 @@ else if (Model.ErrorMessage is not null)
         <input type="password" class="form-control" id="newPasswordInput"
             asp-for="Input.NewPassword" autocomplete="new-password" required
             aria-describedby="newPasswordHelp" />
-        <div id="newPasswordHelp" class="form-text">Minst 12 tecken.</div>
+        <div id="newPasswordHelp" class="form-text">Minst @UserService.MinimumPasswordLength tecken.</div>
         <span class="text-danger" asp-validation-for="Input.NewPassword"></span>
     </div>
     <div class="mb-3">

@@ -43,8 +43,8 @@ namespace WhatToEatApp.Pages
             public string CurrentPassword { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Fyll i ett nytt lösenord.")]
-            [StringLength(UserService.MaximumPasswordLength, MinimumLength = UserService.MinimumPasswordLength,
-                ErrorMessage = "Det nya lösenordet måste vara minst 12 tecken.")]
+            // Se Register.cshtml.cs: längdregeln uttrycks bara av tjänsten.
+            [StringLength(UserService.MaximumPasswordLength)]
             [DataType(DataType.Password)]
             [Display(Name = "Nytt lösenord")]
             public string NewPassword { get; set; } = string.Empty;
@@ -85,8 +85,9 @@ namespace WhatToEatApp.Pages
                     ErrorMessage = "Fel nuvarande lösenord.";
                     return ClearedPage();
                 case ChangePasswordResult.PasswordLengthInvalid:
-                    ErrorMessage = $"Det nya lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
-                        $"och {UserService.MaximumPasswordLength} tecken.";
+                    ModelState.AddModelError("Input.NewPassword",
+                        $"Det nya lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
+                        $"och {UserService.MaximumPasswordLength} tecken.");
                     return ClearedPage();
                 default:
                     ErrorMessage = "Något gick fel och lösenordet byttes inte. Försök igen.";
