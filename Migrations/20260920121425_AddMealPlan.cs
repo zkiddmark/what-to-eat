@@ -57,6 +57,13 @@ namespace WhatToEatApp.Migrations
             // datum är historik och migreras inte, och DateTimeOffset.MinValue (år 1)
             // faller bort av samma skäl.
             //
+            // En rad per (ägare, datum). Flera rätter kan ligga på samma framtida dag för
+            // samma ägare — schemaläggningen före den här storyn letade bara i den laddade
+            // sidan och missade en rätt som låg på en annan sida. Utan det här villkoret
+            // fäller det unika indexet hela migreringen och appen startar inte.
+            // max(rowid) behåller den sista, alltså den rätt gamla GetTodaysDish visade
+            // med sin LastOrDefault.
+            //
             // Id:t byggs om till EF:s Guid-format (8-4-4-4-12, versaler). hex(randomblob(16))
             // ger 32 tecken utan bindestreck och blir oläsbart för EF utan den här
             // ombyggnaden. Subfrågan gör att randomblob utvärderas en gång per rad.
@@ -72,6 +79,11 @@ namespace WhatToEatApp.Migrations
                     SELECT hex(randomblob(16)) AS h, OwnerId, Id, "When"
                     FROM Dishes
                     WHERE date("When") >= date('now')
+                      AND rowid IN (
+                          SELECT max(rowid) FROM Dishes
+                          WHERE date("When") >= date('now')
+                          GROUP BY OwnerId, date("When")
+                      )
                 );
                 """);
 
