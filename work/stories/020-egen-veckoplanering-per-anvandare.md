@@ -1,6 +1,6 @@
 ---
 story: 020
-status: in-progress
+status: done
 issue: 48
 ---
 
