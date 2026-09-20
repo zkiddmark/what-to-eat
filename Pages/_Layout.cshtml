@@ -18,6 +18,9 @@
     <link rel="manifest" href="/img/favicon/site.webmanifest">
     <link href="css/site.css" rel="stylesheet" />
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+    @* Reserv, efter HeadOutlet: en vy med egen PageTitle får sin titel först och den
+       vinner. Saknar vyn en, är den här den enda — fliken blir aldrig tom. *@
+    <title>Veckans mat</title>
 </head>
 
 <body>

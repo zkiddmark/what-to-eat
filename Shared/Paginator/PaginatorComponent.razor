@@ -1,7 +1,7 @@
-<nav aria-label="Page navigation example">
+<nav aria-label="Sidnavigering">
     <ul class="pagination">
         <li class="page-item btn ps-3 pe-0 @(_activePage.IsFirstPage ? "disabled" : "")">
-            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex - 1)" aria-label="Previous">
+            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex - 1)" aria-label="Föregående">
                 <span aria-hidden="true">&laquo;</span>
             </a>
         </li>
@@ -12,7 +12,7 @@
             </li>
         }
         <li class="page-item btn ps-0 @(_activePage.IsLastPage ? "disabled" : "")">
-            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex + 1)" aria-label="Next">
+            <a class="page-link" @onclick="() => OnPageChanged(_activePage.PageIndex + 1)" aria-label="Nästa">
                 <span aria-hidden="true">&raquo;</span>
             </a>
         </li>

@@ -84,7 +84,7 @@
 
 @code
 {
-    private string _nextTime = "Not scheduled";
+    private string _nextTime = "Inte inplanerad";
     private bool _openConfirmation = false;
     private bool _showModal;
     private string? _saveError;
@@ -110,8 +110,8 @@
     {
         var dtNow = DateTimeOffset.UtcNow;
         _nextTime = DishDto?.When.Date >= dtNow.Date
-        ? $"Scheduled on {GetDateString(DishDto.When)}"
-        : "Not scheduled";
+        ? $"Inplanerad {GetDateString(DishDto.When)}"
+        : "Inte inplanerad";
     }
 
     private string GetDateString(DateTimeOffset dt)
