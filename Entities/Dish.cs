@@ -15,7 +15,6 @@ namespace WhatToEatApp.Entities
             string? imgUrl,
             string? recipeUrl,
             IList<string> ingredients,
-            DateTimeOffset when,
             string? imageId)
         {
             Id = id == Guid.Empty ? Guid.NewGuid() : id;
@@ -25,7 +24,6 @@ namespace WhatToEatApp.Entities
             ImgUrl = imgUrl;
             RecipeUrl = recipeUrl;
             Ingredients = ingredients;
-            When = when;
             ImageId = imageId;
         }
 
@@ -38,7 +36,6 @@ namespace WhatToEatApp.Entities
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; }
-        public DateTimeOffset When { get; set; }
         public string? ImageId { get; set; }
 
         /// <summary>Ägaren byts aldrig via en uppdatering och kopieras därför inte här.</summary>
@@ -50,7 +47,6 @@ namespace WhatToEatApp.Entities
             RecipeUrl = updatedDish.RecipeUrl;
             Ingredients = updatedDish.Ingredients;
             ImageId = updatedDish.ImageId;
-            When = updatedDish.When;
         }
     }
 }

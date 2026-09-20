@@ -19,12 +19,36 @@
     </div>
 </div>
 
+@if (PendingPlan is not null)
+{
+    <ConfirmDialogComponent Title="Ersätta dagens rätt?"
+        Question="@($"{PendingPlan.Day.ToSwedish()} har redan {PendingPlan.ExistingTitle} i din vecka. Ersätta den med {PendingPlan.NewTitle}?")"
+        ConfirmText="Ersätt" Result="@OnReplaceConfirmed" />
+}
+
+@if (PlanError is not null)
+{
+    <div class="app-shell">
+        <div class="alert alert-danger" role="alert">@PlanError</div>
+    </div>
+}
+
 @code
 {
     private int _skip = 0;
     private int _take = 10;
 
     private List<DishDto> Dishes { get; set; } = new();
+    private PlanRequest? PendingPlan { get; set; }
+    private string? PlanError { get; set; }
+
+    private class PlanRequest
+    {
+        public Days Day { get; set; }
+        public Guid DishId { get; set; }
+        public string ExistingTitle { get; set; } = string.Empty;
+        public string NewTitle { get; set; } = string.Empty;
+    }
     private int DishesCount { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -53,18 +77,58 @@
         Dishes.AddRange(await DishService.GetAllDishes(args.Skip, args.Take));
     }
 
+    /// <summary>
+    /// Planerar in rätten i MIN vecka. Går via SetPlanAsync, inte UpdateDishAsync — att
+    /// planera kräver inte ägarskap, och den gamla vägen skrev dessutom över den rätt som
+    /// råkade ligga på dagen, oavsett vems den var.
+    /// </summary>
     public async Task OnScheduleNextTimeHandler(PreviousDishEventArgs e)
     {
-        var scheduledDish = Dishes.SingleOrDefault(x => x.When.Date == e.DtWhen.Date);
-        if (scheduledDish is not null)
+        PlanError = null;
+
+        // Ligger redan något på min dag ska jag få veta det innan det byts ut.
+        var existing = await DishService.GetTodaysDish(e.Day);
+        if (existing is not null && existing.DishId != e.DishId)
         {
-            scheduledDish.When = DateTimeOffset.MinValue;
-            await DishService.UpdateDishAsync(scheduledDish);
+            PendingPlan = new PlanRequest
+            {
+                Day = e.Day,
+                DishId = e.DishId,
+                ExistingTitle = existing.Title,
+                NewTitle = Dishes.FirstOrDefault(x => x.DishId == e.DishId)?.Title ?? "rätten",
+            };
+            return;
         }
 
-        var dishToSchedule = Dishes.First(x => x.DishId == e.DishId);
-        dishToSchedule.When = e.DtWhen;
-        await DishService.UpdateDishAsync(dishToSchedule);
+        await ApplyPlanAsync(e.Day, e.DishId);
+    }
+
+    private async Task OnReplaceConfirmed(bool confirmed)
+    {
+        var request = PendingPlan;
+        PendingPlan = null;
+        if (!confirmed || request is null)
+        {
+            // Avbryt lämnar dagen orörd.
+            return;
+        }
+        await ApplyPlanAsync(request.Day, request.DishId);
+    }
+
+    private async Task ApplyPlanAsync(Days day, Guid dishId)
+    {
+        try
+        {
+            await DishService.SetPlanAsync(dishId, day);
+        }
+        catch (Exception)
+        {
+            PlanError = "Rätten kunde inte planeras in. Din vecka är oförändrad.";
+            return;
+        }
+
+        // Läs om först efter att planeringen gått igenom.
+        await ReloadCurrentPageAsync();
     }
 
     public async Task OnDeleteDishHandler(DishDto dishDto)

@@ -10,6 +10,11 @@ namespace WhatToEatApp.Services.Dish
         public string? ImgUrl { get; set; }
         public string? RecipeUrl { get; set; }
         public IList<string> Ingredients { get; set; } = new List<string>();
+        /// <summary>
+        /// Den inloggade användarens egen planering av rätten, fylld av servern i
+        /// DecorateAsync. DateTimeOffset.MinValue betyder "inte inplanerad av mig" —
+        /// någon annan kan ha planerat in samma rätt utan att det syns här.
+        /// </summary>
         public DateTimeOffset When { get; set; }
 
         /// <summary>Snittet av rösterna. Null betyder att ingen röstat än — inte betyget noll.</summary>
@@ -34,7 +39,7 @@ namespace WhatToEatApp.Services.Dish
         public static Entities.Dish MapToNewDish(this DishDto dishDto, Guid ownerId)
         {
             return new Entities.Dish(dishDto.DishId, ownerId, dishDto.Title, dishDto.Notes, dishDto.ImgUrl,
-            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.When, dishDto.ImageId);
+            dishDto.RecipeUrl, dishDto.Ingredients, dishDto.ImageId);
         }
 
         public static DishDto MapToDishDto(this Entities.Dish dish)
@@ -48,7 +53,6 @@ namespace WhatToEatApp.Services.Dish
                 Ingredients = dish.Ingredients,
                 Notes = dish.Notes,
                 RecipeUrl = dish.RecipeUrl,
-                When = dish.When
             };
         }
     }

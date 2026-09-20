@@ -137,21 +137,11 @@ namespace WhatToEatApp.DataMigration
         }
 
         /// <summary>
-        /// LiteDB lagrar DateTime i UTC. Vi normaliserar explicit till UTC i stället för att
-        /// förlita oss på värdets Kind, och uttrycker det sedan i maskinens lokala offset —
-        /// samma tid som LiteDB-versionen visade. Kör migreringen i samma tidszon som appen.
+        /// LiteDB-dokumentets "When" importeras inte längre. Sedan story 020 är planering
+        /// personlig och ligger i MealPlans; ett datum utan användare går inte att tolka.
+        /// Värdena i den gamla databasen ligger dessutom i det förflutna, och storyn räknar
+        /// förflutna datum som historik, inte som planering.
         /// </summary>
-        private static DateTimeOffset ToLocalOffset(DateTime value)
-        {
-            var utc = value.Kind switch
-            {
-                DateTimeKind.Utc => value,
-                DateTimeKind.Local => value.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
-            };
-            return new DateTimeOffset(utc).ToLocalTime();
-        }
-
         private static Dish MapDish(BsonDocument doc, Guid ownerId)
         {
             var ingredients = doc["Ingredients"].IsArray
@@ -166,7 +156,6 @@ namespace WhatToEatApp.DataMigration
                 OptionalText(doc, "ImgUrl"),
                 OptionalText(doc, "RecipeUrl"),
                 ingredients,
-                ToLocalOffset(Required(doc, "When").AsDateTime),
                 OptionalText(doc, "ImageId"));
         }
 
