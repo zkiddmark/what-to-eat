@@ -16,6 +16,10 @@
           <span class="input-group-text col-4 col-sm-3 text-wrap">Rättens namn</span>
           <input class="form-control col-8 col-sm-9" type="text" @bind="TitleInput" />
         </div>
+        @if (_titleError is not null)
+        {
+          <div class="text-danger mt-1" role="alert">@_titleError</div>
+        }
         <div class="list-group mt-3">
           <AddIngredientsComponent IngredientList="IngredientList" OnAddIngredientEvent="OnAddIngredientHandler" />
         </div>
@@ -73,11 +77,21 @@
   /// <summary>Hindrar dubbelklick på sparaknappen medan sparningen pågår.</summary>
   private bool _saving;
 
+  /// <summary>
+  /// Fel användaren själv kan åtgärda, visat vid fältet. Skilt från SaveError, som
+  /// föräldern fyller med "försök igen" — den texten hör bara till tillfälliga fel.
+  /// </summary>
+  private string? _titleError;
+
   private string TitleInput { get; set; } = string.Empty;
   private string NotesTextArea { get; set; } = string.Empty;
   private string ImgUrlInput { get; set; } = string.Empty;
   private string RecipeUrlInput { get; set; } = string.Empty;
-  public IList<string> IngredientList { get; set; } = null!;
+  /// <summary>
+  /// Tom lista, inte null. EditOrCreateState fyller den bara i ändra-grenen, så i
+  /// skapa-grenen gick null vidare till Dishes.Ingredients som är NOT NULL.
+  /// </summary>
+  public IList<string> IngredientList { get; set; } = new List<string>();
   public string ModalHeaderText { get; set; } = "Add a new delightful dish!";
 
   private IBrowserFile? UploadedImage { get; set; }
@@ -132,6 +146,15 @@
 
   private async Task SaveAsync()
   {
+    // Saknad titel fångas här, inte av databasen. Anropet till föräldern uteblir, så
+    // modalen står kvar med allt användaren skrivit.
+    _titleError = null;
+    if (string.IsNullOrWhiteSpace(TitleInput))
+    {
+      _titleError = "Rätten behöver ett namn.";
+      return;
+    }
+
     if (Dish == null)
     {
       Dish = new DishDto
