@@ -6,7 +6,23 @@
     --app-max-width: 1040px;       /* listvyer och veckovy */
     --app-form-max-width: 480px;   /* login, register, konto, tvingat byte */
     --app-card-max-width: 520px;   /* ett enskilt rättkort i rutnätet */
-    --app-gutter: 1rem;            /* luften mot skärmkanten */
+    --app-gutter: 1rem;            /* luften mot skärmkanten */
+
+    /* Paletten. Appens enda källa till färg — vyerna sätter inga egna. */
+    --app-text: #1f2328;
+    --app-text-muted: #5c636a;   /* dämpad men klarar WCAG AA mot vitt */
+    --app-bg: #ffffff;
+    --app-primary: #1b6ec2;
+    --app-primary-hover: #1861ac;
+    --app-danger: #b32121;
+    --app-star: #ffd700;         /* stjärnans egen betydelse, inte en palettfärg */
+
+    /* Typografisk skala. Storleken följer av rubriknivån, inte av en klass på elementet. */
+    --app-font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --app-size-page-title: 2rem;
+    --app-size-section: 1.25rem;
+    --app-size-body: 1rem;
+    --app-size-help: 0.875rem;
 }
 
 /* Skalet är alltid förälder till en Bootstrap-.row, aldrig samma element: .row har
@@ -27,21 +43,77 @@
 }
 
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--app-font);
+    color: var(--app-text);
+    background-color: var(--app-bg);
+    font-size: var(--app-size-body);
+}
+
+/* Hierarkin sitter på rubriknivån. Rätt nivå ger rätt storlek — det är därför
+   nivåerna rättades i vyerna i stället för att storleken sattes per element. */
+h1 {
+    font-size: var(--app-size-page-title);
+    font-weight: 600;
+}
+
+h2 {
+    font-size: var(--app-size-section);
+    font-weight: 600;
+}
+
+h3, h4, h5, h6 {
+    font-size: var(--app-size-body);
+    font-weight: 600;
+}
+
+.form-text,
+small {
+    font-size: var(--app-size-help);
+}
+
+/* text-muted är Bootstraps egen klass; den pekas mot paletten så att dämpad text
+   har ett enda värde och klarar kontrastkravet. */
+.text-muted {
+    color: var(--app-text-muted) !important;
 }
 
 h1:focus {
     outline: none;
 }
 
+/* Bootstrap 5.1 kompilerar in temafärgerna i komponentreglerna — --bs-primary finns
+   men läses inte av dem (det kom i 5.3). Därför det här korta lagret: bara de klasser
+   appen faktiskt använder, och värdet hämtas ur paletten. */
 a, .btn-link {
-    color: #0071c1;
+    color: var(--app-primary);
+}
+
+a:hover, .btn-link:hover {
+    color: var(--app-primary-hover);
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--app-primary);
+    border-color: var(--app-primary);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--app-primary-hover);
+    border-color: var(--app-primary-hover);
+}
+
+.btn-danger {
+    background-color: var(--app-danger);
+    border-color: var(--app-danger);
+}
+
+/* Aktiv vy i navigationen. Knappen ligger inuti NavLinkens <a>, så markeringen
+   måste nå ned till den. */
+.nav-link.active button {
+    border-color: var(--app-primary);
+    color: var(--app-primary);
+    font-weight: 600;
 }
 
 .content {

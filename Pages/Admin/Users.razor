@@ -5,7 +5,7 @@
 @inject IJSRuntime JS
 
 <div class="app-shell">
-<h3 class="text-muted mb-4">Användare</h3>
+<h1 class="mb-4">Användare</h1>
 
 @if (Loading)
 {
@@ -13,7 +13,7 @@
 }
 else
 {
-    <h5 class="mb-2">Väntar på godkännande (@Pending.Count)</h5>
+    <h2 class="mb-2">Väntar på godkännande (@Pending.Count)</h2>
     @if (Pending.Count == 0)
     {
         <p class="text-muted">Inga konton väntar på godkännande.</p>
@@ -31,7 +31,7 @@ else
                             <span class="text-muted ms-2">@user.CreatedAt.ToString("d MMM")</span>
                         </div>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-secondary" disabled="@(Busy is not null)"
+                            <button class="btn btn-primary" disabled="@(Busy is not null)"
                                 @onclick="() => ApproveAsync(user.Id)">Godkänn</button>
                             <button class="btn btn-link text-danger" disabled="@(Busy is not null)"
                                 @onclick="() => AskToReject(user)">Avslå</button>
@@ -46,7 +46,7 @@ else
         </ul>
     }
 
-    <h5 class="mb-2">Användare (@Approved.Count)</h5>
+    <h2 class="mb-2">Användare (@Approved.Count)</h2>
     <ul class="list-group">
         @foreach (var user in Approved)
         {
@@ -95,12 +95,12 @@ else
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Tillfälligt lösenord för @GeneratedFor.Alias</h5>
+                    <h3 class="modal-title">Tillfälligt lösenord för @GeneratedFor.Alias</h3>
                 </div>
                 <div class="modal-body">
                     <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                         <code class="fs-4">@GeneratedPassword</code>
-                        <button class="btn btn-secondary" @onclick="CopyAsync">@CopyLabel</button>
+                        <button class="btn btn-primary" @onclick="CopyAsync">@CopyLabel</button>
                     </div>
                     <p class="mb-0">
                         Visas bara nu. Lämna över det till @GeneratedFor.Alias direkt.

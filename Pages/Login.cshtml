@@ -4,7 +4,7 @@
     Layout = "_AuthLayout";
     ViewData["Title"] = "Logga in";
 }
-<h3 class="text-muted mb-3">Logga in</h3>
+<h1 class="mb-3">Logga in</h1>
 
 @if (Model.ErrorMessage is not null)
 {
@@ -24,7 +24,7 @@
             autocomplete="current-password" required />
         <span class="text-danger" asp-validation-for="Input.Password"></span>
     </div>
-    <button type="submit" class="btn btn-secondary w-100" data-submit>Logga in</button>
+    <button type="submit" class="btn btn-primary w-100" data-submit>Logga in</button>
 </form>
 
 <p class="mt-3 mb-0 text-muted">

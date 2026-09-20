@@ -15,8 +15,8 @@
                 </div>
                 <div class="row mb-4">
                     <div class="col-sm-8 d-flex align-items-center">
-                        <h6 class="card-subtitle text-muted">@(DishDto?.Title)
-                        </h6>
+                        <h2 class="card-subtitle">@(DishDto?.Title)
+                        </h2>
                     </div>
                     @if (!string.IsNullOrEmpty(DishDto?.RecipeUrl))
                     {
@@ -35,7 +35,7 @@
             <div class="row mt-3">
                 <div class="flex-column col-10 col-sm-10">
                     <div class="btn-group w-100">
-                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
                             Eat again!
                         </button>

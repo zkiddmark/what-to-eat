@@ -2,7 +2,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">@Title</h5>
+                <h3 class="modal-title">@Title</h3>
                 <button type="button" class="btn-close" aria-label="Close"
                     @onclick="() => Result.InvokeAsync(false)"></button>
             </div>
@@ -10,8 +10,10 @@
                 <p>@Question</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" @onclick="() => Result.InvokeAsync(true)">Yes</button>
-                <button type="button" class="btn btn-primary" @onclick="() => Result.InvokeAsync(false)">No</button>
+                @* Dialogen bekräftar alltid en destruktiv handling: den bekräftade knappen bär
+                   farofärgen och avböj är neutral. Primärfärgen hör inte hemma här. *@
+                <button type="button" class="btn btn-danger" @onclick="() => Result.InvokeAsync(true)">Yes</button>
+                <button type="button" class="btn btn-secondary" @onclick="() => Result.InvokeAsync(false)">No</button>
             </div>
         </div>
     </div>
