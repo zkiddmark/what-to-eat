@@ -10,8 +10,8 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-sm-12 d-flex">
-                    <h5 class="card-title mb-4">@Day.ToString() <span class="fs-6 text">@(TodaysDish != null ?
-                            $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h5>
+                    <h2 class="card-title mb-4">@Day.ToString() <span class="fs-6 text">@(TodaysDish != null ?
+                            $"({TodaysDish?.When.Date.ToShortDateString()})" : string.Empty)</span></h2>
                     @if (TodaysDish is not null)
                     {
                         <AverageScoreComponent AverageScore="@TodaysDish!.AverageScore" VoteCount="@TodaysDish!.VoteCount" />
@@ -19,8 +19,8 @@
                 </div>
                 <div class="row mb-4">
                     <div class="col-sm-8 d-flex align-items-center">
-                        <h6 class="card-subtitle text-muted">@(TodaysDish?.Title ?? "No dish, go ahead and plan one!")
-                        </h6>
+                        <h3 class="card-subtitle">@(TodaysDish?.Title ?? "No dish, go ahead and plan one!")
+                        </h3>
                     </div>
                     @if (!string.IsNullOrEmpty(TodaysDish?.RecipeUrl))
                     {

@@ -3,7 +3,8 @@
 
 <nav class="navbar navbar-expand bg-light mb-3">
     <div class="app-shell">
-        <NavLink class="navbar-brand d-flex justify-items-center nav-link" href="/" style="color: var(--bs-secondary);">
+        @* Match.All: annars matchar "/" varenda rutt och hemknappen vore alltid aktiv. *@
+        <NavLink class="navbar-brand d-flex justify-items-center nav-link" href="/" Match="NavLinkMatch.All">
             <button class="btn btn-outline-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
                     <use href="/svg/home.svg#icon-home"></use>
@@ -12,7 +13,7 @@
         </NavLink>
         <ul class="navbar-nav w-100 justify-content-between">
             <li class="nav-item">
-                <NavLink class="nav-link" style="color: var(--bs-secondary);" href="previousDishes">
+                <NavLink class="nav-link" href="previousDishes">
                     <button class="btn btn-outline-secondary">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
                             <use href="/svg/forkandknife.svg#icon-forkandknife"></use>
@@ -22,7 +23,7 @@
             </li>
             <AuthorizeView Roles="admin">
                 <li class="nav-item">
-                    <NavLink class="nav-link" style="color: var(--bs-secondary);" href="admin/anvandare">
+                    <NavLink class="nav-link" href="admin/anvandare">
                         <button class="btn btn-outline-secondary">Användare</button>
                     </NavLink>
                 </li>
