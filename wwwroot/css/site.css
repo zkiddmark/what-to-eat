@@ -1,5 +1,31 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
+/* Appens bredd bor här och ingen annanstans. Vyerna sätter klasserna nedan; ingen vy
+   äger sin egen breddregel. Ändra värdet här och hela appen följer med. */
+:root {
+    --app-max-width: 1040px;       /* listvyer och veckovy */
+    --app-form-max-width: 480px;   /* login, register, konto, tvingat byte */
+    --app-card-max-width: 520px;   /* ett enskilt rättkort i rutnätet */
+    --app-gutter: 1rem;            /* luften mot skärmkanten */
+}
+
+/* Skalet är alltid förälder till en Bootstrap-.row, aldrig samma element: .row har
+   negativa sidmarginaler som annars äter upp gutterna och klistrar innehållet i kanten. */
+.app-shell {
+    width: 100%;
+    max-width: var(--app-max-width);
+    margin-inline: auto;
+    padding-inline: var(--app-gutter);
+}
+
+.app-shell--form {
+    max-width: var(--app-form-max-width);
+}
+
+.dish-card {
+    max-width: var(--app-card-max-width);
+}
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }

@@ -1,0 +1,27 @@
+@*
+    Gemensam layout för sidorna utanför Blazor: login, register, konto och tvingat byte.
+    Avsiktligt inte _Layout.cshtml — den startar Blazor-kretsen, som de här sidorna varken
+    har eller ska ha. Bredden kommer från samma variabler som resten av appen.
+*@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <base href="~/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/site.css" rel="stylesheet" asp-append-version="true" />
+</head>
+
+<body>
+    <div class="app-shell app-shell--form mt-3">
+        <div class="border rounded p-3">
+            @RenderBody()
+        </div>
+    </div>
+    <script src="js/submitOnce.js" asp-append-version="true"></script>
+</body>
+
+</html>

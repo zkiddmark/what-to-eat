@@ -1,8 +1,8 @@
 ﻿@page "/"
-<div class="container-fluid">
+<div class="app-shell">
     <div class="d-flex flex-column align-items-center">
         <h1 class="text-primary text-muted me-3">What to eat</h1>
-        <div class="row" style=" max-width: 1040px;">
+        <div class="row">
             @foreach (var day in Enum.GetValues<Days>())
             {
                 <div class="d-flex justify-content-center col-md-6 my-3">
