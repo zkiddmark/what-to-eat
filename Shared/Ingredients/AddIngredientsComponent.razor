@@ -1,5 +1,5 @@
 <div class="d-flex">
-    <span class="input-group-text col-4 col-sm-3 rounded-0 rounded-start">Ingredients</span>
+    <span class="input-group-text col-4 col-sm-3 rounded-0 rounded-start">Ingredienser</span>
     <div class="col-8 col-sm-9 ps-0">
         @if (IngredientList?.Any() ?? false)
         {
@@ -17,10 +17,10 @@
     </div>
 </div>
 <div class="d-flex mt-1">
-    <input class="form-control rounded-0 rounded-start" type="text" placeholder="Type in the ingredient"
+    <input class="form-control rounded-0 rounded-start" type="text" placeholder="Skriv en ingrediens"
         @bind-value="IngredientInputField" @bind-value:event="oninput" />
     <button class="btn btn-secondary rounded-0 rounded-end" @onclick="OnAddIngredient"
-        disabled="@string.IsNullOrEmpty(IngredientInputField)">Add</button>
+        disabled="@string.IsNullOrEmpty(IngredientInputField)">Lägg till</button>
 </div>
 
 @code

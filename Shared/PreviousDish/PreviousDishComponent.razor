@@ -37,12 +37,12 @@
                     <div class="btn-group w-100">
                         <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown"
                             aria-expanded="false">
-                            Eat again!
+                            Ät igen
                         </button>
                         <ul class="dropdown-menu">
                             @foreach (var day in Enum.GetValues<Days>())
                             {
-                                <li class="dropdown-item" @onclick="() => ScheduleNextTime(day)">@day
+                                <li class="dropdown-item" @onclick="() => ScheduleNextTime(day)">@day.ToSwedish()
                                     <span class="text-muted">(@GetDateString(day.ResolveDayOfWeek()))</span>
                                 </li>
                             }
@@ -191,8 +191,11 @@
         {
             Parameters = new()
             {
-                { "Title", "Delete dish" },
-                { "Question", "Are you sure you want to delete this dish?" },
+                { "Title", "Ta bort rätten" },
+                { "Question", "Vill du ta bort den här rätten? Det går inte att ångra." },
+                { "ConfirmText", "Ta bort" },
+                { "CancelText", "Avbryt" },
+                { "Destructive", true },
                 { "Result", EventCallback.Factory.Create<bool>(this, DialogResult) }
             }
         };

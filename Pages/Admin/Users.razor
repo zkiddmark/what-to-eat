@@ -86,7 +86,7 @@ else
     <ConfirmDialogComponent Title="Sätt tillfälligt lösenord"
         Question="@($"Sätt ett tillfälligt lösenord för {PendingTemporaryPassword.Alias} ({PendingTemporaryPassword.Email})? " +
             "Användaren loggas ut överallt och måste välja ett eget lösenord vid nästa inloggning.")"
-        Result="@OnTemporaryPasswordConfirmed" />
+        ConfirmText="Sätt tillfälligt lösenord" Result="@OnTemporaryPasswordConfirmed" />
 }
 
 @if (GeneratedFor is not null && GeneratedPassword is not null)
@@ -120,7 +120,7 @@ else
 {
     <ConfirmDialogComponent Title="Avslå konto"
         Question="@($"Avslå {PendingRejection.Alias} ({PendingRejection.Email})? Det går inte att ångra.")"
-        Result="@OnRejectConfirmed" />
+        ConfirmText="Avslå" Destructive="true" Result="@OnRejectConfirmed" />
 }
 
 @code

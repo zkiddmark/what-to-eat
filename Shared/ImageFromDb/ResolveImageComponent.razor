@@ -4,12 +4,12 @@
 }
 else if (!string.IsNullOrEmpty(DishDto?.ImgUrl))
 {
-    <img src="@DishDto?.ImgUrl" class="card-img-top" alt="..." style="max-height: 500px; object-fit: cover">
+    <img src="@DishDto?.ImgUrl" class="card-img-top" alt="Bild på rätten" style="max-height: 500px; object-fit: cover">
 }
 else
 {
     <img src="@GetRandomImg()" class="card-img-top opacity-25"
-    alt="This a random placeholder picture because you were to lazy to add one that reflects the dish!"
+    alt="Platshållarbild — rätten har ingen egen bild."
     style="max-height: 500px; object-fit: cover">
 }
 
