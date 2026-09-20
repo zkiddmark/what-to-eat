@@ -36,8 +36,10 @@ namespace WhatToEatApp.Pages
             public string Email { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Fyll i ett lösenord.")]
-            [StringLength(UserService.MaximumPasswordLength, MinimumLength = UserService.MinimumPasswordLength,
-                ErrorMessage = "Lösenordet måste vara minst 12 tecken.")]
+            // Ingen MinimumLength här: attributets ErrorMessage måste vara ett konstant
+            // uttryck och kan därför inte hämta siffran ur konstanten. Längdregeln uttrycks
+            // en enda gång, av tjänsten, och skrivs ut i OnPostAsync.
+            [StringLength(UserService.MaximumPasswordLength)]
             [DataType(DataType.Password)]
             [Display(Name = "Lösenord")]
             public string Password { get; set; } = string.Empty;
@@ -72,8 +74,9 @@ namespace WhatToEatApp.Pages
                     ErrorMessage = "Det finns redan ett konto med den e-postadressen.";
                     return Page();
                 default:
-                    ErrorMessage = $"Lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
-                        $"och {UserService.MaximumPasswordLength} tecken.";
+                    ModelState.AddModelError("Input.Password",
+                        $"Lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
+                        $"och {UserService.MaximumPasswordLength} tecken.");
                     return Page();
             }
         }

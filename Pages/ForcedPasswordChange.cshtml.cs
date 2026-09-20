@@ -31,8 +31,8 @@ namespace WhatToEatApp.Pages
         public class InputModel
         {
             [Required(ErrorMessage = "Fyll i ett nytt lösenord.")]
-            [StringLength(UserService.MaximumPasswordLength, MinimumLength = UserService.MinimumPasswordLength,
-                ErrorMessage = "Det nya lösenordet måste vara minst 12 tecken.")]
+            // Se Register.cshtml.cs: längdregeln uttrycks bara av tjänsten.
+            [StringLength(UserService.MaximumPasswordLength)]
             [DataType(DataType.Password)]
             [Display(Name = "Nytt lösenord")]
             public string NewPassword { get; set; } = string.Empty;
@@ -76,13 +76,18 @@ namespace WhatToEatApp.Pages
             var result = await _userService.CompleteForcedChangeAsync(userId.Value, Input.NewPassword);
             if (result != ForcedChangeResult.Success)
             {
+                if (result == ForcedChangeResult.PasswordLengthInvalid)
+                {
+                    ModelState.AddModelError("Input.NewPassword",
+                        $"Det nya lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
+                        $"och {UserService.MaximumPasswordLength} tecken.");
+                    return ClearedPage();
+                }
+
                 ErrorMessage = result switch
                 {
                     ForcedChangeResult.Expired =>
                         "Det tillfälliga lösenordet har gått ut. Be en administratör sätta ett nytt.",
-                    ForcedChangeResult.PasswordLengthInvalid =>
-                        $"Det nya lösenordet måste vara mellan {UserService.MinimumPasswordLength} " +
-                        $"och {UserService.MaximumPasswordLength} tecken.",
                     _ => "Något gick fel och lösenordet byttes inte. Försök igen.",
                 };
                 return ClearedPage();

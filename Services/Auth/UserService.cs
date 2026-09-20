@@ -74,7 +74,7 @@ namespace WhatToEatApp.Services.Auth
     public class UserService : IUserService
     {
         /// <summary>Minsta lösenordslängd. Ingen övre gräns under 256, inga teckenklasskrav.</summary>
-        public const int MinimumPasswordLength = 12;
+        public const int MinimumPasswordLength = 8;
         public const int MaximumPasswordLength = 256;
 
         private const int MaxFailedAttempts = 5;
