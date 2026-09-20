@@ -4,6 +4,7 @@
 @inject IUserService UserService
 @inject IJSRuntime JS
 
+<div class="app-shell">
 <h3 class="text-muted mb-4">Användare</h3>
 
 @if (Loading)
@@ -77,6 +78,8 @@ else
         }
     </ul>
 }
+
+</div>
 
 @if (PendingTemporaryPassword is not null)
 {
