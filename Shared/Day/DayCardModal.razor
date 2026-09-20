@@ -78,7 +78,7 @@
   private string ImgUrlInput { get; set; } = string.Empty;
   private string RecipeUrlInput { get; set; } = string.Empty;
   public IList<string> IngredientList { get; set; } = null!;
-  public string ModalHeaderText { get; set; } = "Add a new delightful dish!";
+  public string ModalHeaderText { get; set; } = "Lägg till en ny rätt";
 
   private IBrowserFile? UploadedImage { get; set; }
   public string? ImageId { get; set; }
@@ -93,7 +93,7 @@
   {
     if (Dish != null)
     {
-      ModalHeaderText = $"Update {Dish.Title}?";
+      ModalHeaderText = $"Ändra {Dish.Title}";
       TitleInput = Dish.Title;
       NotesTextArea = Dish.Notes;
       ImgUrlInput = Dish.ImgUrl ?? string.Empty;
