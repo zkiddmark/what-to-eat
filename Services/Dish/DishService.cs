@@ -9,12 +9,21 @@ namespace WhatToEatApp.Services.Dish
 {
     public interface IDishService
     {
-        Task AddDishAsync(DishDto dish);
+        Task AddDishAsync(DishDto dish, Days? planFor = null);
         Task UpdateDishAsync(DishDto dish);
         Task DeleteDishAsync(DishDto dish);
         Task<IEnumerable<DishDto>> GetAllDishes(int skip = 0, int take = 10);
         Task<int> DishesCount();
         Task<DishDto?> GetTodaysDish(Days day);
+
+        /// <summary>
+        /// Planerar in en rätt på en dag för den inloggade användaren. Kräver medvetet
+        /// INTE ägarskap — att planera är inte att ändra. Rör aldrig någon annans vecka.
+        /// </summary>
+        Task SetPlanAsync(Guid dishId, Days day);
+
+        /// <summary>Tar bort den inloggades planering för dagen. Rätten rörs inte.</summary>
+        Task RemovePlanAsync(Days day);
         Task<string> GetImageFromDbAsync(string imgId);
         Task SetVoteAsync(Guid dishId, int score);
     }
@@ -70,7 +79,7 @@ namespace WhatToEatApp.Services.Dish
             }
         }
 
-        public async Task AddDishAsync(DishDto dishDto)
+        public async Task AddDishAsync(DishDto dishDto, Days? planFor = null)
         {
             var current = await GetCurrentUserAsync();
 
@@ -83,6 +92,81 @@ namespace WhatToEatApp.Services.Dish
             }
 
             db.Dishes.Add(newDish);
+
+            // Rätten och planeringsposten skrivs i samma SaveChanges: en halv skapelse
+            // får inte bli kvar om det andra steget fallerar.
+            if (planFor is not null)
+            {
+                var date = DateOnly.FromDateTime(planFor.Value.ResolveDayOfWeek().Date);
+                var existing = await db.MealPlans
+                    .FirstOrDefaultAsync(x => x.UserId == current.Id && x.Date == date);
+                if (existing is not null)
+                {
+                    existing.DishId = newDish.Id;
+                }
+                else
+                {
+                    db.MealPlans.Add(new WhatToEatApp.Entities.MealPlan
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = current.Id,
+                        DishId = newDish.Id,
+                        Date = date,
+                    });
+                }
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Planerar in en rätt på en dag. Användaren hämtas ur GetCurrentUserAsync och
+        /// kommer aldrig från anroparen. EnsureMayEdit anropas medvetet inte: att planera
+        /// in någon annans rätt är tillåtet, att ändra den är det inte. Slå inte ihop dem.
+        /// </summary>
+        public async Task SetPlanAsync(Guid dishId, Days day)
+        {
+            var current = await GetCurrentUserAsync();
+
+            using var db = _dbContextFactory.CreateDbContext();
+            if (!await db.Dishes.AnyAsync(x => x.Id == dishId))
+            {
+                throw new InvalidOperationException("Rätten finns inte.");
+            }
+
+            var date = DateOnly.FromDateTime(day.ResolveDayOfWeek().Date);
+            var existing = await db.MealPlans
+                .FirstOrDefaultAsync(x => x.UserId == current.Id && x.Date == date);
+            if (existing is not null)
+            {
+                existing.DishId = dishId;
+            }
+            else
+            {
+                db.MealPlans.Add(new WhatToEatApp.Entities.MealPlan
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = current.Id,
+                    DishId = dishId,
+                    Date = date,
+                });
+            }
+            await db.SaveChangesAsync();
+        }
+
+        public async Task RemovePlanAsync(Days day)
+        {
+            var current = await GetCurrentUserAsync();
+
+            using var db = _dbContextFactory.CreateDbContext();
+            var date = DateOnly.FromDateTime(day.ResolveDayOfWeek().Date);
+            var plan = await db.MealPlans
+                .FirstOrDefaultAsync(x => x.UserId == current.Id && x.Date == date);
+            if (plan is null)
+            {
+                return;
+            }
+            db.MealPlans.Remove(plan);
             await db.SaveChangesAsync();
         }
 
@@ -153,7 +237,6 @@ namespace WhatToEatApp.Services.Dish
                 // saknad röst inte är samma sak som ett lågt betyg.
                 .OrderBy(x => !scores.TryGetValue(x.Id, out var s) || s.Average is null)
                 .ThenByDescending(x => scores.TryGetValue(x.Id, out var s) ? s.Average ?? 0 : 0)
-                .ThenByDescending(x => x.When)
                 .ThenBy(x => x.Id)
                 .Skip(skip)
                 .Take(take)
@@ -173,16 +256,22 @@ namespace WhatToEatApp.Services.Dish
             var current = await GetCurrentUserAsync();
 
             using var db = _dbContextFactory.CreateDbContext();
-            var dishes = await db.Dishes.ToListAsync();
-            var dish = dishes.LastOrDefault(x => x.When.Date == day.ResolveDayOfWeek().Date);
+            var date = DateOnly.FromDateTime(day.ResolveDayOfWeek().Date);
+            var plan = await db.MealPlans
+                .FirstOrDefaultAsync(x => x.UserId == current.Id && x.Date == date);
+            if (plan is null)
+            {
+                return null;
+            }
+
+            var dish = await db.Dishes.FirstOrDefaultAsync(x => x.Id == plan.DishId);
             if (dish is null)
             {
                 return null;
             }
+
             var scores = await LoadScoresAsync(db, current.Id);
-            var dishDto = (await DecorateAsync(db, new List<Entities.Dish> { dish }, current, scores)).Single();
-            dishDto.When = day.ResolveDayOfWeek();
-            return dishDto;
+            return (await DecorateAsync(db, new List<Entities.Dish> { dish }, current, scores)).Single();
         }
 
         /// <summary>
@@ -254,11 +343,24 @@ namespace WhatToEatApp.Services.Dish
                 .Where(u => ownerIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id, u => u.Alias);
 
+            // Min egen planering för de rätter som visas — en fråga för hela sidan, som
+            // LoadScoresAsync. Någon annans planering syns aldrig här.
+            var dishIds = dishes.Select(x => x.Id).ToList();
+            var myPlans = await db.MealPlans
+                .Where(p => p.UserId == current.Id && dishIds.Contains(p.DishId))
+                .ToListAsync();
+            var planByDish = myPlans
+                .GroupBy(p => p.DishId)
+                .ToDictionary(g => g.Key, g => g.Max(p => p.Date));
+
             return dishes.Select(dish =>
             {
                 var dto = dish.MapToDishDto();
                 dto.OwnerAlias = aliases.TryGetValue(dish.OwnerId, out var alias) ? alias : string.Empty;
                 dto.CanEdit = current.IsAdmin || dish.OwnerId == current.Id;
+                dto.When = planByDish.TryGetValue(dish.Id, out var planned)
+                    ? new DateTimeOffset(planned.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero)
+                    : DateTimeOffset.MinValue;
                 if (scores.TryGetValue(dish.Id, out var score))
                 {
                     dto.AverageScore = score.Average;

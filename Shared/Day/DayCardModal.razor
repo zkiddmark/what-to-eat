@@ -165,7 +165,6 @@
         RecipeUrl = RecipeUrlInput,
         Ingredients = IngredientList,
         Image = UploadedImage,
-        When = Day.ResolveDayOfWeek()
       };
       await HandleOnSaveEvent.InvokeAsync((Dish, true));
     }

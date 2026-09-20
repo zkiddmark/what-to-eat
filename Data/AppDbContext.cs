@@ -15,6 +15,7 @@ namespace WhatToEatApp.Data
         public DbSet<DishImage> DishImages => Set<DishImage>();
         public DbSet<AppUser> Users => Set<AppUser>();
         public DbSet<DishVote> DishVotes => Set<DishVote>();
+        public DbSet<MealPlan> MealPlans => Set<MealPlan>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,6 +54,18 @@ namespace WhatToEatApp.Data
                 // användare är meningslös, medan ett recept utan ägare är data man vill behålla.
                 vote.HasOne<Dish>().WithMany().HasForeignKey(x => x.DishId).OnDelete(DeleteBehavior.Cascade);
                 vote.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MealPlan>(plan =>
+            {
+                plan.HasKey(x => x.Id);
+                // Garantin för "en rätt per dag och användare".
+                plan.HasIndex(x => new { x.UserId, x.Date }).IsUnique();
+                // Kaskad som för rösterna: en planeringspost utan sin rätt eller sin
+                // användare är meningslös. Det är också det som gör att en raderad rätt
+                // inte lämnar en trasig rad i någons vecka.
+                plan.HasOne<Dish>().WithMany().HasForeignKey(x => x.DishId).OnDelete(DeleteBehavior.Cascade);
+                plan.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<AppUser>(user =>

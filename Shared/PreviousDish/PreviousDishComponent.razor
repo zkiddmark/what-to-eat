@@ -126,11 +126,13 @@
         {
             return;
         }
-        _nextTime = $"{day} ({GetDateString(dt)})";
 
+        // _nextTime sätts inte här: sidan läses om när planeringen sparats, och vyn ska
+        // aldrig visa en dag som inte gått igenom.
         var eventArgs = new PreviousDishEventArgs()
         {
             DtWhen = dt,
+            Day = day,
             DishId = DishDto!.DishId
         };
 
