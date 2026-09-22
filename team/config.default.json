@@ -1,0 +1,37 @@
+{
+  "project": {
+    "mode": "github",
+    "repo": "",
+    "workspaceRoot": ""
+  },
+  "roles": [
+    {
+      "name": "product-owner",
+      "title": "Product Owner / UX",
+      "adapter": "claude-code",
+      "model": "claude-opus-5",
+      "autoStart": false
+    },
+    {
+      "name": "architect",
+      "title": "Architect",
+      "adapter": "claude-code",
+      "model": "claude-opus-5",
+      "autoStart": false
+    },
+    {
+      "name": "coder",
+      "title": "Coder",
+      "adapter": "claude-code",
+      "model": "claude-opus-5",
+      "autoStart": false
+    },
+    {
+      "name": "reviewer",
+      "title": "Reviewer",
+      "adapter": "claude-code",
+      "model": "claude-opus-5",
+      "autoStart": false
+    }
+  ]
+}

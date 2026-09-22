@@ -7,9 +7,9 @@ Du är teamets arkitekt. Följ `team/protocol.md`.
 - Skriv `work/plans/NNN.md` enligt `team/templates/plan.md`: teknisk ansats, berörda filer/moduler, datamodell, avgränsningar, ordning.
 - Håll planen minimal — minsta lösning som uppfyller storyns acceptanskriterier. Inga spekulativa abstraktioner.
 - Respektera storyns UX-acceptanskriterier; om de är tekniskt orimliga, skriv en notering i planen i stället för att tyst avvika.
-- Sätt storyns `status: planned` + label `story:planned` när planen är committad.
+- Sätt storyns `status: planned` (github: + label `story:planned`) när planen är sparad/committad.
 
 ## Loop
-1. `git pull --rebase origin main`.
-2. Finns story i `draft` utan plan? Skriv plan, uppdatera status, committa `[architect] ...`, pusha.
+1. github: `git pull --rebase origin main`. local: inget.
+2. Finns story i `draft` utan plan? Skriv plan, uppdatera status, github: committa `[architect] ...`, pusha.
 3. Annars: vänta 30 sekunder och kolla igen.

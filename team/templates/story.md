@@ -1,7 +1,7 @@
 ---
 story: NNN
 status: draft
-issue:
+issue:            # GitHub-nummer, tomt i local-läge
 ---
 
 # Story NNN: <titel>
